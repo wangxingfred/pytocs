@@ -32,23 +32,27 @@ namespace Pytocs.Core.Types
         public DataType? SelfType { get; set; }                 // self's type for calls
 
         public FunType()
+            : base(NameScopeType.FUNCTION)
         {
             this.Class = null;
         }
 
         public FunType(FunctionDef? func, NameScope? env)
+            : base(NameScopeType.FUNCTION)
         {
             this.Definition = func;
             this.scope = env;
         }
 
         public FunType(Lambda lambda, NameScope? env)
+            : base(NameScopeType.FUNCTION)
         {
             this.Lambda = lambda;
             this.scope = env;
         }
 
         public FunType(DataType from, DataType to)
+            : base(NameScopeType.FUNCTION)
         {
             AddMapping(from, to);
         }

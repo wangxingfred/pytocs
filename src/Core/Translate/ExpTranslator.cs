@@ -281,6 +281,11 @@ namespace Pytocs.Core.Translate
             }
         }
 
+        public CodeExpression VisitLocalVarsExp(LocalVarsExp e)
+        {
+            throw new NotImplementedException();
+        }
+
         public CodeExpression VisitAssignExp(AssignExp e)
         {
             var d = e.Dst.Accept(this);
@@ -293,15 +298,15 @@ namespace Pytocs.Core.Translate
             return m.BinOp(d, mppyoptocsop[e.Operator], s);
         }
 
-        public CodeExpression VisitAssignmentExp(AssignmentExp e)
-        {
-            var id = gensym.MapLocalReference(e.Dst.Name);
-            var exp = e.Src.Accept(this);
-            return m.BinOp(
-                    m.AssignExp(id, exp),
-                    CodeOperatorType.NotEqual,
-                    m.Prim(null));
-        }
+        // public CodeExpression VisitAssignmentExp(AssignmentExp e)
+        // {
+        //     var id = gensym.MapLocalReference(e.Dst.Name);
+        //     var exp = e.Src.Accept(this);
+        //     return m.BinOp(
+        //             m.AssignExp(id, exp),
+        //             CodeOperatorType.NotEqual,
+        //             m.Prim(null));
+        // }
 
         public CodeExpression VisitAwait(AwaitExp awaitExp)
         {

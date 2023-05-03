@@ -60,13 +60,14 @@ namespace Pytocs.Core.Syntax
                 sb.Append(string.Join(",", tuple));
                 sb.Append(")");
             }
-            else if (IsKeyArg)
-            {
-                sb.AppendFormat("**{0}", Id);
-            }
+            // else if (IsKeyArg)
+            // {
+            //     sb.AppendFormat("**{0}", Id);
+            // }
             else if (IsVarArg)
             {
-                sb.AppendFormat("*{0}", Id);
+                // sb.AppendFormat("*{0}", Id);
+                sb.Append("...");
             }
             else
             {

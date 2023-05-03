@@ -640,46 +640,46 @@ namespace Pytocs.Core.Translate
             var ifStmt = gen.If(i.Test.Accept(xlat), () => Xlat(i.Then), () => Xlat(i.Else));
         }
 
-        public void VisitFrom(FromStatement f)
-        {
-            foreach (var alias in f.AliasedNames)
-            {
-                if (f.DottedName != null)
-                {
-                    var total = f.DottedName.segs.Concat(alias.Orig.segs)
-                        .Select(s => gen.EscapeKeywordName(s.Name));
-                    string aliasName;
-                    if (alias.Alias == null)
-                    {
-                        aliasName = total.Last();
-                }
-                    else
-                    {
-                        aliasName = alias.Alias.Name;
-            }
-                    gen.Using(aliasName, string.Join(".", total));
-        }
-            }
-        }
+        // public void VisitFrom(FromStatement f)
+        // {
+        //     foreach (var alias in f.AliasedNames)
+        //     {
+        //         if (f.DottedName != null)
+        //         {
+        //             var total = f.DottedName.segs.Concat(alias.Orig.segs)
+        //                 .Select(s => gen.EscapeKeywordName(s.Name));
+        //             string aliasName;
+        //             if (alias.Alias == null)
+        //             {
+        //                 aliasName = total.Last();
+        //         }
+        //             else
+        //             {
+        //                 aliasName = alias.Alias.Name;
+        //     }
+        //             gen.Using(aliasName, string.Join(".", total));
+        // }
+        //     }
+        // }
 
-        public void VisitImport(ImportStatement i)
-        {
-            foreach (var name in i.Names)
-            {
-                if (name.Alias == null)
-                {
-                    gen.Using(name.Orig.ToString());
-                }
-                else
-                {
-                    gen.Using(
-                        name.Alias.Name,
-                        string.Join(
-                            ".",
-                            name.Orig.segs.Select(s => gen.EscapeKeywordName(s.Name))));
-                }
-            }
-        }
+        // public void VisitImport(ImportStatement i)
+        // {
+        //     foreach (var name in i.Names)
+        //     {
+        //         if (name.Alias == null)
+        //         {
+        //             gen.Using(name.Orig.ToString());
+        //         }
+        //         else
+        //         {
+        //             gen.Using(
+        //                 name.Alias.Name,
+        //                 string.Join(
+        //                     ".",
+        //                     name.Orig.segs.Select(s => gen.EscapeKeywordName(s.Name))));
+        //         }
+        //     }
+        // }
 
         public void Xlat(Statement? stmt)
         {
@@ -760,13 +760,13 @@ namespace Pytocs.Core.Translate
             }
         }
 
-        public void VisitAsync(AsyncStatement a)
-        {
-            var oldAsync = this.async;
-            this.async = true;
-            a.Statement.Accept(this);
-            this.async = oldAsync;
-        }
+        // public void VisitAsync(AsyncStatement a)
+        // {
+        //     var oldAsync = this.async;
+        //     this.async = true;
+        //     a.Statement.Accept(this);
+        //     this.async = oldAsync;
+        // }
 
         public void VisitAssert(AssertStatement a)
         {

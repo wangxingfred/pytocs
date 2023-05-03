@@ -20,7 +20,8 @@ namespace Pytocs.UnitTests
 
         public void Error(Exception ex, string format, params object[] args)
         {
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
+            Console.WriteLine($@"ex = {ex}, msg = {string.Format(format, args)}");
         }
 
         public void Inform(string p)

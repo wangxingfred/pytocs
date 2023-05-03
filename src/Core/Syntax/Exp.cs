@@ -684,6 +684,7 @@ namespace Pytocs.Core.Syntax
         {
             writer.Write(Name);
         }
+        
     }
 
     public class Application : Exp
@@ -876,6 +877,7 @@ namespace Pytocs.Core.Syntax
         }
     }
 
+    // TODO 删除AwaitExp
     public class AwaitExp : Exp
     {
         public AwaitExp(Exp exp, string filename, int start, int end) :base(filename, start, end)
@@ -1322,6 +1324,57 @@ namespace Pytocs.Core.Syntax
         }
     }
 
+    public class LocalVarsExp : Exp
+    {
+        
+        public LocalVarsExp(List<Identifier> vars, List<Exp> inits, string filename, int start, int end)
+            : base(filename, start, end)
+        {
+            Variables = vars;
+            Initializers = inits;
+        }
+        public List<Identifier> Variables { get; }
+        
+        public List<Exp> Initializers { get; }
+        
+        public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
+        {
+            return v.VisitLocalVarsExp(this, context);
+        }
+
+        public override T Accept<T>(IExpVisitor<T> v)
+        {
+            return v.VisitLocalVarsExp(this);
+        }
+
+        public override void Accept(IExpVisitor v)
+        {
+            v.VisitLocalVarsExp(this);
+        }
+        
+        public override void Write(TextWriter writer)
+        {
+            writer.Write("var ");
+            string? step = null;
+            foreach (var variable in Variables)
+            {
+                writer.Write(step);
+                variable.Write(writer);
+                step = ",";
+            }
+            
+            writer.Write(" = ");
+            
+            step = null;
+            foreach (var init in Initializers)
+            {
+                writer.Write(step);
+                init.Write(writer);
+                step = ",";
+            }
+        }
+    }
+
     public class AssignExp : Exp
     {
         public AssignExp(Exp lhs, Op op, Exp rhs, string filename, int start, int end)
@@ -1453,41 +1506,41 @@ namespace Pytocs.Core.Syntax
     }
 
     // The := "walrus operator"
-    public class AssignmentExp : Exp
-    {
-        public Identifier Dst;
-
-        public Exp Src;
-
-        public AssignmentExp(Identifier dst, Exp src, string filename, int start, int end) 
-            : base(filename, start, end)
-        {
-            this.Dst = dst;
-            this.Src = src;
-        }
-
-        public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
-        {
-            return v.VisitAssignmentExp(this, context);
-        }
-
-        public override T Accept<T>(IExpVisitor<T> v)
-        {
-            return v.VisitAssignmentExp(this);
-        }
-
-        public override void Accept(IExpVisitor v)
-        {
-            v.VisitAssignmentExp(this);
-        }
-
-        public override void Write(TextWriter writer)
-        {
-            Dst.Write(writer);
-            writer.Write(" ");
-            writer.Write(":=");
-            writer.Write(" ");
-            Src.Write(writer);
-        }
-    }
+    // public class AssignmentExp : Exp
+    // {
+    //     public Identifier Dst;
+    //
+    //     public Exp Src;
+    //
+    //     public AssignmentExp(Identifier dst, Exp src, string filename, int start, int end) 
+    //         : base(filename, start, end)
+    //     {
+    //         this.Dst = dst;
+    //         this.Src = src;
+    //     }
+    //
+    //     public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
+    //     {
+    //         return v.VisitAssignmentExp(this, context);
+    //     }
+    //
+    //     public override T Accept<T>(IExpVisitor<T> v)
+    //     {
+    //         return v.VisitAssignmentExp(this);
+    //     }
+    //
+    //     public override void Accept(IExpVisitor v)
+    //     {
+    //         v.VisitAssignmentExp(this);
+    //     }
+    //
+    //     public override void Write(TextWriter writer)
+    //     {
+    //         Dst.Write(writer);
+    //         writer.Write(" ");
+    //         writer.Write(":=");
+    //         writer.Write(" ");
+    //         Src.Write(writer);
+    //     }
+    // }
 }

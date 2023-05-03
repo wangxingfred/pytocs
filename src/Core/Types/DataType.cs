@@ -31,7 +31,7 @@ namespace Pytocs.Core.Types
 
         protected DataType(NameScopeType scopeType = NameScopeType.SCOPE)
         {
-            this.Scope = new NameScope(null, NameScopeType.SCOPE);
+            this.Scope = new NameScope(null, scopeType);
         }
 
         public NameScope Scope { get; set; }

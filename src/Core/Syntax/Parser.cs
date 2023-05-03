@@ -1,4 +1,5 @@
 #region License
+
 //  Copyright 2015-2021 John Källén
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +13,7 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+
 #endregion
 
 using System;
@@ -31,7 +33,9 @@ namespace Pytocs.Core.Syntax
     public class Parser
     {
 #pragma warning disable IDE1006 // Naming Styles
+
         #region Python 3.7 grammar
+
         /*
 # Grammar for Python
 
@@ -184,9 +188,11 @@ encoding_decl: NAME
 yield_expr: 'yield' [yield_arg]
 yield_arg: 'from' test | testlist
          */
+
         #endregion
 
         #region Python 2.7.6 grammar
+
         /*
 # Grammar for Python
 
@@ -335,6 +341,7 @@ encoding_decl: NAME
 
 yield_expr: 'yield' [testlist]
         */
+
         #endregion
 
         private readonly string filename;
@@ -391,7 +398,7 @@ yield_expr: 'yield' [testlist]
             return true;
         }
 
-        private Exception Error(string str, params object [] args)
+        private Exception Error(string str, params object[] args)
         {
             str = string.Format(str, args);
             throw new InvalidOperationException($"{filename}({lexer.LineNumber}): {str}");
@@ -404,7 +411,7 @@ yield_expr: 'yield' [testlist]
 
         private Exception Unexpected(Token token)
         {
-            return Error(Resources.ErrUnexpectedToken, token); 
+            return Error(Resources.ErrUnexpectedToken, token);
         }
 
 #if NEVER
@@ -430,27 +437,27 @@ file_input: (NEWLINE | stmt)* ENDMARKER
 eval_input: testlist NEWLINE* ENDMARKER
 #endif
         //decorator: '@' dotted_name [ '(' [arglist] ')' ] NEWLINE
-        private Decorator decorator()
-        {
-            var posStart = Expect(TokenType.AT).Start;
-            var dn = dotted_name();
-            List<Argument> args = new List<Argument>();
-            if (PeekAndDiscard(TokenType.LPAREN, out var token))
-            {
-                if (!Peek(TokenType.RPAREN))
-                {
-                    args = arglist(dn, token.Start).Args;
-                }
-                Expect(TokenType.RPAREN);
-            }
-            if (Peek(TokenType.COMMENT))
-            {
-                //$TODO: do something with this?
-                var eolComment = (string?)Expect(TokenType.COMMENT).Value;
-            }
-            var posEnd = Expect(TokenType.NEWLINE).Start;
-            return new Decorator(dn, args, filename, posStart, posEnd);
-        }
+        // private Decorator decorator()
+        // {
+        //     var posStart = Expect(TokenType.AT).Start;
+        //     var dn = dotted_name();
+        //     List<Argument> args = new List<Argument>();
+        //     if (PeekAndDiscard(TokenType.LPAREN, out var token))
+        //     {
+        //         if (!Peek(TokenType.RPAREN))
+        //         {
+        //             args = arglist(dn, token.Start).Args;
+        //         }
+        //         Expect(TokenType.RPAREN);
+        //     }
+        //     if (Peek(TokenType.COMMENT))
+        //     {
+        //         //$TODO: do something with this?
+        //         var eolComment = (string?)Expect(TokenType.COMMENT).Value;
+        //     }
+        //     var posEnd = Expect(TokenType.NEWLINE).Start;
+        //     return new Decorator(dn, args, filename, posStart, posEnd);
+        // }
 
         private bool Peek(TokenType tokenType)
         {
@@ -468,14 +475,15 @@ eval_input: testlist NEWLINE* ENDMARKER
             var token = lexer.Peek();
             return
                 (token.Type == tokenType &&
-                value.Equals(token.Value));
+                 value.Equals(token.Value));
         }
 
         private bool Peek(params TokenType[] tokenTypes)
         {
             var type = lexer.Peek().Type;
             foreach (var t in tokenTypes)
-                if (t == type) return true;
+                if (t == type)
+                    return true;
             return false;
         }
 
@@ -493,6 +501,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                     return;
             }
         }
+
         private Token Expect(TokenType tokenType)
         {
             var t = lexer.Peek();
@@ -501,6 +510,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                 Debug.Print("Expect failed: {0} {1}", filename, t.LineNumber);
                 throw Error(Resources.ErrExpectedTokenButSaw, tokenType, t.Type);
             }
+
             return lexer.Get();
         }
 
@@ -511,76 +521,103 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 throw Error(Resources.ErrInvalidSyntax, msg);
             }
+
             return t;
         }
 
         //decorators: decorator+
         public List<Decorator> decorators()
         {
-            var dec = decorator();
-            var decs = new List<Decorator> { dec };
-            while (Peek(TokenType.AT))
-            {
-                decs.Add(decorator());
-            }
-            return decs;
+            // var dec = decorator();
+            // var decs = new List<Decorator> { dec };
+            // while (Peek(TokenType.AT))
+            // {
+            //     decs.Add(decorator());
+            // }
+            // return decs;
+            return new List<Decorator>();
         }
 
         //decorated: decorators (classdef | funcdef)
 
-        public List<Statement> decorated()
-        {
-            var decs = decorators();
-            Statement d;
-            for (;;)
-            {
-                if (Peek(TokenType.Def))
-                {
-                    d = funcdef()[0];
-                    break;
-                }
-                else if (Peek(TokenType.Class))
-                {
-                    d = classdef()[0];
-                    break;
-                }
-                else if (!Peek(TokenType.COMMENT, TokenType.NEWLINE))
-                {
-                    Error(Resources.ErrExpectedFunctionOrClassDefinition, lexer.Peek());
-                }
-                //$TODO: keep the comments.
-                lexer.Get();
-            }
-            d.Decorators = decs;
-            return new List<Statement> { d };
-        }
+        // public List<Statement> decorated()
+        // {
+        //     var decs = decorators();
+        //     Statement d;
+        //     for (;;)
+        //     {
+        //         if (Peek(TokenType.LuaFunction))
+        //         {
+        //             d = funcdef()[0];
+        //             break;
+        //         }
+        //         else if (Peek(TokenType.Class))
+        //         {
+        //             d = classdef()[0];
+        //             break;
+        //         }
+        //         else if (!Peek(TokenType.COMMENT, TokenType.NEWLINE))
+        //         {
+        //             Error(Resources.ErrExpectedFunctionOrClassDefinition, lexer.Peek());
+        //         }
+        //         //$TODO: keep the comments.
+        //         lexer.Get();
+        //     }
+        //     d.Decorators = decs;
+        //     return new List<Statement> { d };
+        // }
 
         // funcdef: 'def' NAME parameters ['->' test] ':' suite
         public List<Statement> funcdef()
         {
-            var start = Expect(TokenType.Def).Start;
-            var token = Expect(TokenType.ID);
-            var fnName = new Identifier((string)token.Value!, filename, token.Start, token.End);
-            Debug.Print("  Parsing {0}", fnName.Name);
+            var fndef = funcdef(-1);
+            return new List<Statement> { fndef };
+        }
+
+        private Statement funcdef(int localStart)
+        {
+            var funcToken = Expect(TokenType.LuaFunction);
+            var start = localStart < 0 ? funcToken.Start : localStart;
+
+            // var token = Expect(TokenType.ID);
+            // var fnName = new Identifier((string) token.Value!, filename, token.Start, token.End);
+            var name = id();
+            
+            // 识别function A.B() 或 function A:B()
+            Identifier? cls = null;
+            var isInstanceMethod = false;
+            if (PeekAndDiscard(TokenType.DOT))
+            {
+                cls = name;
+                name = id();
+            } else if (PeekAndDiscard(TokenType.COLON))
+            {
+                cls = name;
+                name = id();
+                isInstanceMethod = true;
+            }
+            
+            // Debug.Print("  Parsing {0}", fnName.Name);
             List<Parameter> parms = parameters();
             Exp? annotation = null;
-            if (PeekAndDiscard(TokenType.LARROW))
-            {
-                annotation = test();
-            }
-            Expect(TokenType.COLON);
+            // if (PeekAndDiscard(TokenType.LARROW))
+            // {
+            //     annotation = test();
+            // }
+            // Expect(TokenType.COLON);
             var s = suite();
+            Expect(TokenType.LuaEnd);
             var vararg = parms.Where(p => p.IsVarArg).SingleOrDefault();
             var kwarg = parms.Where(p => p.IsKeyArg).SingleOrDefault();
-            var fndef = new FunctionDef(
-                fnName,
+            return new FunctionDef(
+                name, cls,
                 parms,
                 vararg?.Id,
                 kwarg?.Id,
                 annotation,
                 s,
+                localStart >= 0, isInstanceMethod,
                 filename, start, s.End);
-            return new List<Statement> { fndef };
         }
 
         // parameters: '(' [typedargslist] ')'
@@ -597,6 +634,7 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 args = typedargslist();
             }
+
             Expect(TokenType.RPAREN);
             return args;
         }
@@ -614,66 +652,85 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 switch (lexer.Peek().Type)
                 {
-                case TokenType.OP_STAR:
-                    lexer.Get();
-                    if (Peek(TokenType.ID))
+                case TokenType.LuaEllipsis:
+                    var t = lexer.Get();
+                    arg = new Parameter
                     {
-                        arg = fpdef();
-                        arg.IsVarArg = true;
-                        args.Add(arg);
-                    }
-                    if (PeekAndDiscard(TokenType.COMMA))
-                    {
-                        if (PeekAndDiscard(TokenType.OP_STARSTAR))
-                        {
-                            arg = fpdef();
-                            arg.IsKeyArg = true;
-                            args.Add(arg);
-                            return args;
-                        }
-                        arg = fpdef();
-                        args.Add(arg);
-                        if (PeekAndDiscard(TokenType.EQ))
-                            arg.Test = test();
-                    }
-                    return args;
-                case TokenType.OP_STARSTAR:
-                    lexer.Get();
-                    arg = fpdef();
+                        Id = new Identifier((string) t.Value!, filename, t.Start, t.End),
+                        IsVarArg = true,
+                    };
                     args.Add(arg);
                     return args;
+                // case TokenType.OP_STAR:
+                //     lexer.Get();
+                //     if (Peek(TokenType.ID))
+                //     {
+                //         arg = fpdef();
+                //         arg.IsVarArg = true;
+                //         args.Add(arg);
+                //     }
+                //     if (PeekAndDiscard(TokenType.COMMA))
+                //     {
+                //         // if (PeekAndDiscard(TokenType.OP_STARSTAR))
+                //         // {
+                //         //     arg = fpdef();
+                //         //     arg.IsKeyArg = true;
+                //         //     args.Add(arg);
+                //         //     return args;
+                //         // }
+                //         arg = fpdef();
+                //         args.Add(arg);
+                //         if (PeekAndDiscard(TokenType.EQ))
+                //             arg.Test = test();
+                //     }
+                //     return args;
+                // case TokenType.OP_STARSTAR:
+                //     lexer.Get();
+                //     arg = fpdef();
+                //     args.Add(arg);
+                //     return args;
                 default:
                     // (tfpdef ['=' test] (',' tfpdef ['=' test])* [','  ['*' [tfpdef] (',' tfpdef ['=' test])* [',' '**' tfpdef] | '**' tfpdef]]
                     arg = fpdef();
                     args.Add(arg);
-                    if (PeekAndDiscard(TokenType.EQ))
-                        arg.Test = test();
+                    // if (PeekAndDiscard(TokenType.EQ)) // =号后面默认值
+                    //     arg.Test = test();
                     while (PeekAndDiscard(TokenType.COMMA))
                     {
                         if (PeekAndDiscard(TokenType.COMMENT))
                         {
                             //$TODO: arg-specific comment?
                         }
+
                         if (Peek(TokenType.RPAREN))
-                            break;      // Skip trailing comma
-                        if (PeekAndDiscard(TokenType.OP_STARSTAR))
+                            break; // Skip trailing comma
+                        // if (PeekAndDiscard(TokenType.OP_STARSTAR))
+                        // {
+                        //     arg = fpdef();
+                        //     arg.IsKeyArg = true;
+                        //     args.Add(arg);
+                        // }
+                        // else if (PeekAndDiscard(TokenType.OP_STAR))
+                        // {
+                        //     if (!Peek(TokenType.COMMA))
+                        //     {
+                        //         // *args
+                        //     arg = fpdef();
+                        //     }
+                        //     else
+                        //     {
+                        //         arg = new Parameter();
+                        //     }
+                        //     arg.IsVarArg = true;
+                        //     args.Add(arg);
+                        // }
+                        if (PeekAndDiscard(TokenType.LuaEllipsis, out t))
                         {
-                            arg = fpdef();
-                            arg.IsKeyArg = true;
-                            args.Add(arg);
-                        }
-                        else if (PeekAndDiscard(TokenType.OP_STAR))
-                        {
-                            if (!Peek(TokenType.COMMA))
+                            arg = new Parameter
                             {
-                                // *args
-                            arg = fpdef();
-                            }
-                            else
-                            {
-                                arg = new Parameter();
-                            }
-                            arg.IsVarArg = true;
+                                Id = new Identifier((string) t.Value!, filename, t.Start, t.End),
+                                IsVarArg = true,
+                            };
                             args.Add(arg);
                         }
                         else
@@ -684,9 +741,11 @@ eval_input: testlist NEWLINE* ENDMARKER
                                 arg.Test = test();
                         }
                     }
+
                     return args;
                 }
             }
+
             throw Unexpected();
         }
 
@@ -700,10 +759,12 @@ eval_input: testlist NEWLINE* ENDMARKER
                 {
                     t.Test = test();
                 }
+
                 args.Add(t);
                 if (!PeekAndDiscard(TokenType.COMMA))
                     return args;
             }
+
             while (PeekAndDiscard(TokenType.OP_STAR))
             {
                 Parameter? t = null;
@@ -713,10 +774,11 @@ eval_input: testlist NEWLINE* ENDMARKER
                 if (!PeekAndDiscard(TokenType.COMMA))
                     return args;
             }
-            if (PeekAndDiscard(TokenType.OP_STARSTAR))
-            {
-                args.Add(fpdef());
-            }
+
+            // if (PeekAndDiscard(TokenType.OP_STARSTAR))
+            // {
+            //     args.Add(fpdef());
+            // }
             return args;
         }
 
@@ -724,24 +786,25 @@ eval_input: testlist NEWLINE* ENDMARKER
         // tfpdef: NAME [':' test]
         Parameter fpdef()
         {
-            if (PeekAndDiscard(TokenType.LPAREN))
-            {
-                var fpl = fplist();
-                Expect(TokenType.RPAREN);
-                return new Parameter
-                {
-                    tuple = fpl
-                };
-            }
+            // if (PeekAndDiscard(TokenType.LPAREN))
+            // {
+            //     var fpl = fplist();
+            //     Expect(TokenType.RPAREN);
+            //     return new Parameter
+            //     {
+            //         tuple = fpl
+            //     };
+            // }
             string? eolComment = null;
             if (Peek(TokenType.COMMENT))
             {
-                eolComment = (string)Expect(TokenType.COMMENT).Value!;
+                eolComment = (string) Expect(TokenType.COMMENT).Value!;
             }
+
             var name = id();
             Exp? a = null;
-            if (PeekAndDiscard(TokenType.COLON))
-                a = test();
+            // if (PeekAndDiscard(TokenType.COLON)) // 冒号后面标志类型
+            //     a = test();
             return new Parameter
             {
                 Id = name,
@@ -751,21 +814,21 @@ eval_input: testlist NEWLINE* ENDMARKER
         }
 
         // fplist: fpdef (',' fpdef)* [',']
-        List<Parameter> fplist()
-        {
-            var fp = fpdef();
-            var p = new List<Parameter> { fp };
-            if (PeekAndDiscard(TokenType.COMMA))
-            {
-                while (!Peek(TokenType.EOF, TokenType.RPAREN))
-                {
-                    p.Add(fpdef());
-                    if (!PeekAndDiscard(TokenType.COMMA))
-                        return p;
-                }
-            }
-            return p;
-        }
+        // List<Parameter> fplist()
+        // {
+        //     var fp = fpdef();
+        //     var p = new List<Parameter> { fp };
+        //     if (PeekAndDiscard(TokenType.COMMA))
+        //     {
+        //         while (!Peek(TokenType.EOF, TokenType.RPAREN))
+        //         {
+        //             p.Add(fpdef());
+        //             if (!PeekAndDiscard(TokenType.COMMA))
+        //                 return p;
+        //         }
+        //     }
+        //     return p;
+        // }
 
         //varargslist: 
         //        (vfpdef ['=' test] (',' vfpdef ['=' test])* [',' ['*' [vfpdef] (',' vfpdef ['=' test])* [',' '**' vfpdef] | '**' vfpdef]]
@@ -774,22 +837,24 @@ eval_input: testlist NEWLINE* ENDMARKER
         public List<VarArg> varargslist()
         {
             var args = new List<VarArg>();
-                    if (PeekAndDiscard(TokenType.LPAREN))
-                    {
+            if (PeekAndDiscard(TokenType.LPAREN))
+            {
                 args = varargslist();
-                        Expect(TokenType.RPAREN);
+                Expect(TokenType.RPAREN);
                 return args;
-                    }
+            }
+
             if (Peek(TokenType.ID))
-                    {
+            {
                 var vfp = vfpdef_init();
                 args.Add(vfp);
                 while (PeekAndDiscard(TokenType.COMMA) && Peek(TokenType.ID))
-                        {
+                {
                     vfp = vfpdef_init();
                     args.Add(vfp);
-                        }
-                    }
+                }
+            }
+
             if (PeekAndDiscard(TokenType.OP_STAR))
             {
                 args.Add(VarArg.Indexed(vfpdef()));
@@ -799,9 +864,10 @@ eval_input: testlist NEWLINE* ENDMARKER
                     args.Add(vfp);
                 }
             }
-            if (PeekAndDiscard(TokenType.OP_STARSTAR)) {
-                args.Add(VarArg.Keyword(vfpdef()));
-            }
+
+            // if (PeekAndDiscard(TokenType.OP_STARSTAR)) {
+            //     args.Add(VarArg.Keyword(vfpdef()));
+            // }
             return args;
         }
 
@@ -813,6 +879,7 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 init = test();
             }
+
             return new VarArg(id, init);
         }
 
@@ -820,25 +887,29 @@ eval_input: testlist NEWLINE* ENDMARKER
         public Identifier vfpdef()
         {
             var token = Expect(TokenType.ID);
-            return new Identifier((string)token.Value!, filename, token.Start, token.End);
+            return new Identifier((string) token.Value!, filename, token.Start, token.End);
         }
 
-        private readonly static HashSet<TokenType> compoundStatement_first = new HashSet<TokenType>() {
-            TokenType.If, TokenType.While, TokenType.For, TokenType.Try, TokenType.With,
-            TokenType.Def, TokenType.Class, TokenType.AT, TokenType.Async
+        private readonly static HashSet<TokenType> compoundStatement_first = new HashSet<TokenType>()
+        {
+            TokenType.If, TokenType.While, TokenType.For, /*TokenType.Try, TokenType.With,*/
+            TokenType.LuaFunction, TokenType.Class, /*TokenType.AT, TokenType.Async,*/ TokenType.LuaRepeat
         };
 
-        private readonly static HashSet<TokenType> augassign_set = new HashSet<TokenType>() {
-            TokenType.ADDEQ, TokenType.SUBEQ, TokenType.MULEQ, TokenType.DIVEQ, TokenType.MODEQ,
-            TokenType.ANDEQ, TokenType.OREQ, TokenType.XOREQ, TokenType.SHLEQ, TokenType.SHREQ,
-            TokenType.EXPEQ, TokenType.IDIVEQ, TokenType.ATEQ
+        private readonly static HashSet<TokenType> augassign_set = new HashSet<TokenType>()
+        {
+            // TokenType.ADDEQ, TokenType.SUBEQ, TokenType.MULEQ, TokenType.DIVEQ, TokenType.MODEQ,
+            // TokenType.ANDEQ, TokenType.OREQ, TokenType.XOREQ, TokenType.SHLEQ, TokenType.SHREQ,
+            // TokenType.EXPEQ, TokenType.IDIVEQ, TokenType.ATEQ
         };
 
-        private readonly static HashSet<TokenType> stmt_follow = new HashSet<TokenType>() {
+        private readonly static HashSet<TokenType> stmt_follow = new HashSet<TokenType>()
+        {
             TokenType.SEMI, TokenType.NEWLINE, TokenType.COMMENT, TokenType.EOF
         };
 
-        private readonly static HashSet<TokenType> trailer_first = new HashSet<TokenType> {
+        private readonly static HashSet<TokenType> trailer_first = new HashSet<TokenType>
+        {
             TokenType.LPAREN, TokenType.LBRACKET, TokenType.DOT
         };
 
@@ -848,22 +919,18 @@ eval_input: testlist NEWLINE* ENDMARKER
         {
             try
             {
-            if (Peek(compoundStatement_first))
-            {
-                return compound_stmt();
+                var stmt = compound_stmt();
+                return stmt ?? simple_stmt();
             }
-            else
-            {
-                return simple_stmt();
-            }
-        }
             catch (Exception ex)
             {
                 if (!catchExceptions)
                     throw;
-                logger.Error(ex, $"({this.filename},{lexer.LineNumber}): parser error. Please report on https://github.com/uxmal/pytocs");
-                SkipUntil(TokenType.COMMENT, TokenType.Def, TokenType.Class);
-                return new List<Statement> {
+                logger.Error(ex,
+                    $"({this.filename},{lexer.LineNumber}): parser error. Please report on https://github.com/uxmal/pytocs");
+                SkipUntil(TokenType.COMMENT, TokenType.LuaFunction, TokenType.Class);
+                return new List<Statement>
+                {
                     new CommentStatement(this.filename, 0, 0)
                     {
                         Comment = "<parser-error>",
@@ -881,31 +948,37 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 stmts.Add(s);
             }
+
             while (PeekAndDiscard(TokenType.SEMI))
             {
                 if (Peek(TokenType.EOF))
                     break;
                 if (PeekAndDiscard(TokenType.NEWLINE))
                 {
-                    return new List<Statement> {
+                    return new List<Statement>
+                    {
                         new SuiteStatement(stmts, filename, stmts[0].Start, stmts.Last().End)
                     };
                 }
+
                 s = small_stmt();
                 if (s != null)
                 {
                     stmts.Add(s);
                 }
             }
+
             string? comment = null;
             if (!Peek(TokenType.EOF))
             {
                 if (Peek(TokenType.COMMENT))
                 {
-                    comment = (string)Expect(TokenType.COMMENT).Value!;
+                    comment = (string) Expect(TokenType.COMMENT).Value!;
                 }
-                Expect(TokenType.NEWLINE);
+
+                PeekAndDiscard(TokenType.NEWLINE); // Expect(TokenType.NEWLINE);
             }
+
             if (stmts.Count == 0)
             {
                 return new List<Statement>();
@@ -930,12 +1003,13 @@ eval_input: testlist NEWLINE* ENDMARKER
             case TokenType.Break: return break_stmt();
             case TokenType.Continue: return continue_stmt();
             case TokenType.Return: return return_stmt();
-            case TokenType.Raise: return raise_stmt();
-            case TokenType.Yield: return yield_stmt();
-            case TokenType.Import: return import_stmt();
-            case TokenType.From: return import_stmt();
-            case TokenType.Global: return global_stmt();
-            case TokenType.Nonlocal: return nonlocal_stmt();
+            // case TokenType.Raise: return raise_stmt();
+            // case TokenType.Yield: return yield_stmt();
+            // case TokenType.Import: return import_stmt();
+            // case TokenType.From: return import_stmt();
+            // case TokenType.Global: return global_stmt();
+            // case TokenType.Nonlocal: return nonlocal_stmt();
+            case TokenType.LuaLocal: return local_stmt();
             case TokenType.Assert: return assert_stmt();
             case TokenType.Exec: return exec_stmt();
             case TokenType.COMMENT: return comment_stmt();
@@ -943,7 +1017,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                 Expect(TokenType.INDENT);
                 if (PeekAndDiscard(TokenType.COMMENT, out var c))
                 {
-                    return new CommentStatement(filename, c.Start, c.End) { Comment = (string)c.Value! };
+                    return new CommentStatement(filename, c.Start, c.End) { Comment = (string) c.Value! };
                 }
                 else
                 {
@@ -953,7 +1027,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                 Expect(TokenType.DEDENT);
                 if (PeekAndDiscard(TokenType.COMMENT, out var cc))
                 {
-                    return new CommentStatement(filename, cc.Start, cc.End) { Comment = (string)cc.Value! };
+                    return new CommentStatement(filename, cc.Start, cc.End) { Comment = (string) cc.Value! };
                 }
                 else
                 {
@@ -968,40 +1042,41 @@ eval_input: testlist NEWLINE* ENDMARKER
         public Statement expr_stmt()
         {
             // Hack to deal with print statement from python 2.*
-            if (Peek(TokenType.ID, "print"))
-            {
-                return print_stmt();
-            }
+            // if (Peek(TokenType.ID, "print"))
+            // {
+            //     return print_stmt();
+            // }
             var lhs = testlist_star_expr();
-            if (Peek(TokenType.COLON))
-            {
-                var (a, i) = annasign();
-                //$TODO: distinguish declarations from assignments.
-                var ass = new AssignExp(lhs, a, Op.Assign, i!, filename, lhs.Start, (i ?? a).End);
-                lhs = ass;
-            }
-            if (Peek(augassign_set))
-            {
-                var op = augassign();
-                Exp e2;
-                if (Peek(TokenType.Yield))
-                    e2 = yield_expr();
-                else
-                    e2 = testlist();
-                lhs = new AssignExp(lhs, op, e2, filename, lhs.Start, e2.End);
-            }
-            else
+            // if (Peek(TokenType.COLON))
+            // {
+            //     var (a, i) = annasign();
+            //     //$TODO: distinguish declarations from assignments.
+            //     var ass = new AssignExp(lhs, a, Op.Assign, i!, filename, lhs.Start, (i ?? a).End);
+            //     lhs = ass;
+            // }
+            // if (Peek(augassign_set))
+            // {
+            //     var op = augassign();
+            //     Exp e2;
+            //     if (Peek(TokenType.Yield))
+            //         e2 = yield_expr();
+            //     else
+            //         e2 = testlist();
+            //     lhs = new AssignExp(lhs, op, e2, filename, lhs.Start, e2.End);
+            // }
+            // else
             {
                 var rhsStack = new Stack<Exp>();
                 while (PeekAndDiscard(TokenType.EQ))
                 {
                     Exp r;
-                    if (Peek(TokenType.Yield))
-                        r = yield_expr();
-                    else
-                        r = testlist_star_expr();
+                    // if (Peek(TokenType.Yield))
+                    //     r = yield_expr();
+                    // else
+                    r = testlist_star_expr();
                     rhsStack.Push(r);
                 }
+
                 if (rhsStack.Count > 0)
                 {
                     Exp e = rhsStack.Pop();
@@ -1009,7 +1084,8 @@ eval_input: testlist NEWLINE* ENDMARKER
                     {
                         var ee = rhsStack.Pop();
                         e = new AssignExp(ee, Op.Assign, e, filename, ee.Start, e.End);
-            }
+                    }
+
                     lhs = new AssignExp(lhs, Op.Assign, e, filename, lhs.Start, e.End);
                 }
             }
@@ -1018,104 +1094,106 @@ eval_input: testlist NEWLINE* ENDMARKER
 
         //print_stmt: 'print' ( [ test (',' test)* [','] ] |
         //                      '>>' test [ (',' test)+ [','] ] )
-        public Statement print_stmt()
-        {
-            var args = new List<Argument>();
-            Exp? outputStream = null;    // default to stdout.
-            bool trailing_comma = false;
-
-            Identifier printId = id();
-            int posEnd = printId.End;
-            if (!Peek(TokenType.NEWLINE))
-            {
-                if (PeekAndDiscard(TokenType.OP_SHR))
-                {
-                    outputStream = ExpectTest();
-                    if (PeekAndDiscard(TokenType.COMMA))
-                    {
-                        var e = ExpectTest();
-                        args.Add(new Argument(null, e, filename, e.Start, e.End));
-                        while (PeekAndDiscard(TokenType.COMMA))
-                        {
-                            var d = ExpectTest();
-                            args.Add(new Argument(null, d, filename, e.Start, d.End));
-                        }
-                        posEnd = args.Last().End;
-                    }
-                }
-                else if (Peek(TokenType.LPAREN))
-                {
-                    var tok = lexer.Get();
-                    args = arglist(printId, tok.Start).Args;
-                    Expect(TokenType.RPAREN);
-                    if (PeekAndDiscard(TokenType.COMMA))
-                    {
-                        trailing_comma = true;
-                }
-                }
-                else
-                {
-                    for (; ; )
-                    {
-                        var tok = lexer.Peek();
-                        if (tok.Type == TokenType.EOF ||
-                            tok.Type == TokenType.NEWLINE ||
-                            tok.Type == TokenType.SEMI)
-                            break;
-                        var a = ExpectTest();
-                        args.Add(new Argument(null, a, filename, a.Start, a.End));
-                        posEnd = a.End;
-                        if (!PeekAndDiscard(TokenType.COMMA))
-                            break;
-                        if (Peek(stmt_follow))
-                        {
-                            trailing_comma = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            return new PrintStatement(outputStream, args, trailing_comma, filename, printId.Start, posEnd);
-        }
+        // public Statement print_stmt()
+        // {
+        //     var args = new List<Argument>();
+        //     Exp? outputStream = null;    // default to stdout.
+        //     bool trailing_comma = false;
+        //
+        //     Identifier printId = id();
+        //     int posEnd = printId.End;
+        //     if (!Peek(TokenType.NEWLINE))
+        //     {
+        //         /*if (PeekAndDiscard(TokenType.OP_SHR))
+        //         {
+        //             outputStream = ExpectTest();
+        //             if (PeekAndDiscard(TokenType.COMMA))
+        //             {
+        //                 var e = ExpectTest();
+        //                 args.Add(new Argument(null, e, filename, e.Start, e.End));
+        //                 while (PeekAndDiscard(TokenType.COMMA))
+        //                 {
+        //                     var d = ExpectTest();
+        //                     args.Add(new Argument(null, d, filename, e.Start, d.End));
+        //                 }
+        //                 posEnd = args.Last().End;
+        //             }
+        //         }
+        //         else*/ if (Peek(TokenType.LPAREN))
+        //         {
+        //             var tok = lexer.Get();
+        //             args = arglist(printId, tok.Start).Args;
+        //             Expect(TokenType.RPAREN);
+        //             if (PeekAndDiscard(TokenType.COMMA))
+        //             {
+        //                 trailing_comma = true;
+        //         }
+        //         }
+        //         else
+        //         {
+        //             for (; ; )
+        //             {
+        //                 var tok = lexer.Peek();
+        //                 if (tok.Type == TokenType.EOF ||
+        //                     tok.Type == TokenType.NEWLINE ||
+        //                     tok.Type == TokenType.SEMI)
+        //                     break;
+        //                 var a = ExpectTest();
+        //                 args.Add(new Argument(null, a, filename, a.Start, a.End));
+        //                 posEnd = a.End;
+        //                 if (!PeekAndDiscard(TokenType.COMMA))
+        //                     break;
+        //                 if (Peek(stmt_follow))
+        //                 {
+        //                     trailing_comma = true;
+        //                     break;
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     return new PrintStatement(outputStream, args, trailing_comma, filename, printId.Start, posEnd);
+        // }
 
         //testlist_star_expr: (test|star_expr) (',' (test|star_expr))* [',']
         public Exp testlist_star_expr()
         {
             List<Exp> exprs = new();
             bool forceSingletonTuple = false;
-            for (; ; )
+            for (;;)
             {
                 Exp? e;
-                if (Peek(TokenType.OP_STAR))
-                    e = star_expr();
-                else
-                    e = test();
+                // if (Peek(TokenType.OP_STAR))
+                //     e = star_expr();
+                // else
+                e = test();
                 if (e is null)
                     break;
                 exprs.Add(e);
+
                 if (!PeekAndDiscard(TokenType.COMMA))
                     break;
                 forceSingletonTuple = true;
                 if (Peek(stmt_follow))
                     break;
             }
+
             return exprs.Count == 1 && !forceSingletonTuple ? exprs[0] : new ExpList(exprs, filename, 0, 0);
         }
 
         // annassign: ':' test ['=' test]
-        public (Exp, Exp?) annasign()
-        {
-            Expect(TokenType.COLON);
-            Exp? annotation = test();
-            if (annotation is null)
-                throw Unexpected();
-            Exp? initializer = null;
-            if (PeekAndDiscard(TokenType.EQ))
-            {
-                initializer = test();
-            }
-            return (annotation, initializer);
-        }
+        // public (Exp, Exp?) annasign()
+        // {
+        //     Expect(TokenType.COLON);
+        //     Exp? annotation = test();
+        //     if (annotation is null)
+        //         throw Unexpected();
+        //     Exp? initializer = null;
+        //     if (PeekAndDiscard(TokenType.EQ))
+        //     {
+        //         initializer = test();
+        //     }
+        //     return (annotation, initializer);
+        // }
 
         //augassign: ('+=' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' |
         //            '<<=' | '>>=' | '**=' | '//=')
@@ -1123,19 +1201,19 @@ eval_input: testlist NEWLINE* ENDMARKER
         {
             switch (lexer.Get().Type)
             {
-            case TokenType.ADDEQ: return Op.AugAdd;
-            case TokenType.SUBEQ: return Op.AugSub;
-            case TokenType.MULEQ: return Op.AugMul;
-            case TokenType.DIVEQ: return Op.AugDiv;
-            case TokenType.MODEQ: return Op.AugMod;
-            case TokenType.ANDEQ: return Op.AugAnd;
-            case TokenType.OREQ: return Op.AugOr;
-            case TokenType.XOREQ: return Op.AugXor;
-            case TokenType.SHLEQ: return Op.AugShl;
-            case TokenType.SHREQ: return Op.AugShr;
-            case TokenType.EXPEQ: return Op.AugExp;
-            case TokenType.IDIVEQ: return Op.AugIDiv;
-            case TokenType.ATEQ: return Op.AugMatMul;
+            // case TokenType.ADDEQ: return Op.AugAdd;
+            // case TokenType.SUBEQ: return Op.AugSub;
+            // case TokenType.MULEQ: return Op.AugMul;
+            // case TokenType.DIVEQ: return Op.AugDiv;
+            // case TokenType.MODEQ: return Op.AugMod;
+            // case TokenType.ANDEQ: return Op.AugAnd;
+            // case TokenType.OREQ: return Op.AugOr;
+            // case TokenType.XOREQ: return Op.AugXor;
+            // case TokenType.SHLEQ: return Op.AugShl;
+            // case TokenType.SHREQ: return Op.AugShr;
+            // case TokenType.EXPEQ: return Op.AugExp;
+            // case TokenType.IDIVEQ: return Op.AugIDiv;
+            // case TokenType.ATEQ: return Op.AugMatMul;
             default: throw Unexpected();
             }
         }
@@ -1186,130 +1264,116 @@ eval_input: testlist NEWLINE* ENDMARKER
                     posEnd = e.End;
                 }
             }
+
             return new ReturnStatement(e, filename, posStart, posEnd);
         }
 
         //yield_stmt: yield_expr
-        public Statement yield_stmt()
-        {
-            var e =  yield_expr();
-            return new YieldStatement(e, filename, e.Start, e.End);
-        }
+        // public Statement yield_stmt()
+        // {
+        //     var e =  yield_expr();
+        //     return new YieldStatement(e, filename, e.Start, e.End);
+        // }
 
         //raise_stmt: 'raise' [test ['from' test]]
         //raise_stmt: 'raise' [test [',' test [',' Test]]]
-        public Statement raise_stmt()
-        {
-            Exp? exToRaise = null;
-            Exp? exOriginal = null;
-            var token = Expect(TokenType.Raise);
-            var posStart = token.Start;
-            var posEnd = token.End;
-            if (!Peek(stmt_follow))
-            {
-                exToRaise = test();
-                if (exToRaise != null)
-                {
-                    posEnd = exToRaise.End;
-                    if (PeekAndDiscard(TokenType.From))
-                    {
-                        exOriginal = ExpectTest();
-                        posEnd = exOriginal.End;
-                    }
-                    else if (PeekAndDiscard(TokenType.COMMA))
-                    {
-                        Exp ex2 = ExpectTest();
-                        Exp? ex3 = new NoneExp(filename, ex2.End, ex2.End);
-                        if (PeekAndDiscard(TokenType.COMMA))
-                        {
-                            ex3 = ExpectTest();
-                        }
-                        exOriginal = new PyTuple(new List<Exp> { ex2, ex3! }, filename, posStart, (ex3 ?? ex2).End);
-                        posEnd = exOriginal.End;
-                    }
-                }
-            }
-            return new RaiseStatement(exToRaise, exOriginal, filename, posStart, posEnd);
-        }
+        // public Statement raise_stmt()
+        // {
+        //     Exp? exToRaise = null;
+        //     Exp? exOriginal = null;
+        //     var token = Expect(TokenType.Raise);
+        //     var posStart = token.Start;
+        //     var posEnd = token.End;
+        //     if (!Peek(stmt_follow))
+        //     {
+        //         exToRaise = test();
+        //         if (exToRaise != null)
+        //         {
+        //             posEnd = exToRaise.End;
+        //             if (PeekAndDiscard(TokenType.From))
+        //             {
+        //                 exOriginal = ExpectTest();
+        //                 posEnd = exOriginal.End;
+        //             }
+        //             else if (PeekAndDiscard(TokenType.COMMA))
+        //             {
+        //                 Exp ex2 = ExpectTest();
+        //                 Exp? ex3 = new NoneExp(filename, ex2.End, ex2.End);
+        //                 if (PeekAndDiscard(TokenType.COMMA))
+        //                 {
+        //                     ex3 = ExpectTest();
+        //                 }
+        //                 exOriginal = new PyTuple(new List<Exp> { ex2, ex3! }, filename, posStart, (ex3 ?? ex2).End);
+        //                 posEnd = exOriginal.End;
+        //             }
+        //         }
+        //     }
+        //     return new RaiseStatement(exToRaise, exOriginal, filename, posStart, posEnd);
+        // }
 
         //import_stmt: import_name | import_from
-        public Statement import_stmt()
-        {
-            if (Peek(TokenType.Import))
-                return import_name();
-            else
-                return import_from();
-        }
+        // public Statement import_stmt()
+        // {
+        //     if (Peek(TokenType.Import))
+        //         return import_name();
+        //     else
+        //         return import_from();
+        // }
 
         //import_name: 'import' dotted_as_names
-        public Statement import_name()
-        {
-            var posStart = Expect(TokenType.Import).Start;
-            var names = dotted_as_names();
-            return new ImportStatement(names, filename, posStart, names.Last().End);
-        }
+        // public Statement import_name()
+        // {
+        //     var posStart = Expect(TokenType.Import).Start;
+        //     var names = dotted_as_names();
+        //     return new ImportStatement(names, filename, posStart, names.Last().End);
+        // }
 
         // note below: the ('.' | '...') is necessary because '...' is tokenized as ELLIPSIS
         //import_from: ('from' (('.' | '...')* dotted_name | ('.' | '...')+)
         //              'import' ('*' | '(' import_as_names ')' | import_as_names))
-        public Statement import_from()
-        {
-            var posStart = Expect(TokenType.From).Start;
-            DottedName? name = null;
-            if (Peek(TokenType.DOT, TokenType.ELLIPSIS))
-            {
-                lexer.Get();
-                while (Peek(TokenType.DOT, TokenType.ELLIPSIS))
-                {
-                    lexer.Get();
-                }
-                if (Peek(TokenType.ID))
-                    name = dotted_name();
-            }
-            else
-            {
-                name = dotted_name();
-            }
-            Expect(TokenType.Import);
-            int posEnd;
-            List<AliasedName>? aliasNames;
-            if (PeekAndDiscard(TokenType.OP_STAR, out var token))
-            {
-                aliasNames = new List<AliasedName>();
-                posEnd = token.End;
-            }
-            else if (PeekAndDiscard(TokenType.LPAREN))
-            {
-                aliasNames = import_as_names();
-                posEnd = Expect(TokenType.RPAREN).End;
-            }
-            else
-            {
-                aliasNames = import_as_names();
-                posEnd = aliasNames.Last().End;
-            }
-            return new FromStatement(name, aliasNames, filename, posStart, posEnd);
-        }
+        // public Statement import_from()
+        // {
+        //     var posStart = Expect(TokenType.From).Start;
+        //     DottedName? name = null;
+        //     // if (Peek(TokenType.DOT, TokenType.ELLIPSIS))
+        //     // {
+        //     //     lexer.Get();
+        //     //     while (Peek(TokenType.DOT, TokenType.ELLIPSIS))
+        //     //     {
+        //     //         lexer.Get();
+        //     //     }
+        //     //     if (Peek(TokenType.ID))
+        //     //         name = dotted_name();
+        //     // }
+        //     // else
+        //     {
+        //         name = dotted_name();
+        //     }
+        //     Expect(TokenType.Import);
+        //     int posEnd;
+        //     List<AliasedName>? aliasNames;
+        //     if (PeekAndDiscard(TokenType.OP_STAR, out var token))
+        //     {
+        //         aliasNames = new List<AliasedName>();
+        //         posEnd = token.End;
+        //     }
+        //     else if (PeekAndDiscard(TokenType.LPAREN))
+        //     {
+        //         aliasNames = import_as_names();
+        //         posEnd = Expect(TokenType.RPAREN).End;
+        //     }
+        //     else
+        //     {
+        //         aliasNames = import_as_names();
+        //         posEnd = aliasNames.Last().End;
+        //     }
+        //     return new FromStatement(name, aliasNames, filename, posStart, posEnd);
+        // }
 
         //import_as_name: NAME ['as' NAME]
         public AliasedName import_as_name()
         {
             var orig = id();
-            if (PeekAndDiscard(TokenType.As))
-            {
-                var alias = id();
-            return new AliasedName(orig,  alias, filename, orig.Start, alias.End);
-        }
-            else
-            {
-                return new AliasedName(orig, null, filename, orig.Start, orig.End);
-            }
-        }
-
-        //dotted_as_name: dotted_name ['as' NAME]
-        public AliasedName dotted_as_name()
-        {
-            var orig = dotted_name();
             if (PeekAndDiscard(TokenType.As))
             {
                 var alias = id();
@@ -1321,82 +1385,153 @@ eval_input: testlist NEWLINE* ENDMARKER
             }
         }
 
+        //dotted_as_name: dotted_name ['as' NAME]
+        // public AliasedName dotted_as_name()
+        // {
+        //     var orig = dotted_name();
+        //     if (PeekAndDiscard(TokenType.As))
+        //     {
+        //         var alias = id();
+        //         return new AliasedName(orig, alias, filename, orig.Start, alias.End);
+        //     }
+        //     else
+        //     {
+        //         return new AliasedName(orig, null, filename, orig.Start, orig.End);
+        //     }
+        // }
+
         //import_as_names: import_as_name (',' import_as_name)* [',']
-        public List<AliasedName> import_as_names()
-        {
-            var aliases = new List<AliasedName>();
-            CollectComments();  //$TODO: we should be keeping these somehow
-            aliases.Add(import_as_name());
-            while (PeekAndDiscard(TokenType.COMMA))
-            {
-                CollectComments();
-                if (!Peek(TokenType.ID))
-                    break;
-                aliases.Add(import_as_name());
-            }
-            return aliases;
-        }
+        // public List<AliasedName> import_as_names()
+        // {
+        //     var aliases = new List<AliasedName>();
+        //     CollectComments();  //$TODO: we should be keeping these somehow
+        //     aliases.Add(import_as_name());
+        //     while (PeekAndDiscard(TokenType.COMMA))
+        //     {
+        //         CollectComments();
+        //         if (!Peek(TokenType.ID))
+        //             break;
+        //         aliases.Add(import_as_name());
+        //     }
+        //     return aliases;
+        // }
         //dotted_as_names: dotted_as_name (',' dotted_as_name)*
-        public List<AliasedName> dotted_as_names()
-        {
-            var alias = dotted_as_name();
-            var aliases = new List<AliasedName> { alias };
-            while (PeekAndDiscard(TokenType.COMMA))
-            {
-                aliases.Add(dotted_as_name());
-            }
-            return aliases;
-        }
+        // public List<AliasedName> dotted_as_names()
+        // {
+        //     var alias = dotted_as_name();
+        //     var aliases = new List<AliasedName> { alias };
+        //     while (PeekAndDiscard(TokenType.COMMA))
+        //     {
+        //         aliases.Add(dotted_as_name());
+        //     }
+        //     return aliases;
+        // }
 
         //dotted_name: NAME ('.' NAME)*
-        public DottedName dotted_name()
-        {
-            var segs = new List<Identifier>();
-            var name = id();
-            var posStart = name.Start;
-            var posEnd = name.End;
-            segs.Add(name);
-            while (PeekAndDiscard(TokenType.DOT))
-            {
-                name = id();
-                posEnd = name.End;
-                segs.Add(name);
-            }
-            return new DottedName(segs, filename, posStart, posEnd);
-        }
+        // public DottedName dotted_name()
+        // {
+        //     var segs = new List<Identifier>();
+        //     var name = id();
+        //     var posStart = name.Start;
+        //     var posEnd = name.End;
+        //     segs.Add(name);
+        //     while (PeekAndDiscard(TokenType.DOT))
+        //     {
+        //         name = id();
+        //         posEnd = name.End;
+        //         segs.Add(name);
+        //     }
+        //     return new DottedName(segs, filename, posStart, posEnd);
+        // }
 
         //global_stmt: 'global' NAME (',' NAME)*
-        public Statement global_stmt()
-        {
-            var posStart = Expect(TokenType.Global).Start;
-            var names = new List<Identifier>();
-            var name = id();
-            var posEnd = name.End;
-            names.Add(name);
-            while (PeekAndDiscard(TokenType.COMMA))
-            {
-                name = id();
-                posEnd = name.End;
-                names.Add(name);
-            }
-            return new GlobalStatement(names, filename, posStart, posEnd);
-        }
+        // public Statement global_stmt()
+        // {
+        //     var posStart = Expect(TokenType.Global).Start;
+        //     var names = new List<Identifier>();
+        //     var name = id();
+        //     var posEnd = name.End;
+        //     names.Add(name);
+        //     while (PeekAndDiscard(TokenType.COMMA))
+        //     {
+        //         name = id();
+        //         posEnd = name.End;
+        //         names.Add(name);
+        //     }
+        //     return new GlobalStatement(names, filename, posStart, posEnd);
+        // }
 
         //nonlocal_stmt: 'nonlocal' NAME (',' NAME)*
-        public Statement nonlocal_stmt()
+        // public Statement nonlocal_stmt()
+        // {
+        //     var posStart = Expect(TokenType.Nonlocal).Start;
+        //     var names = new List<Identifier>();
+        //     var name = id();
+        //     var posEnd = name.End;
+        //     names.Add(name);
+        //     while (PeekAndDiscard(TokenType.COMMA))
+        //     {
+        //         name = id();
+        //         posEnd = name.End;
+        //         names.Add(name);
+        //     }
+        //     return new NonlocalStatement(names, filename, posStart, posEnd);
+        // }
+
+        public Statement local_stmt()
         {
-            var posStart = Expect(TokenType.Nonlocal).Start;
-            var names = new List<Identifier>();
-            var name = id();
-            var posEnd = name.End;
-            names.Add(name);
-            while (PeekAndDiscard(TokenType.COMMA))
+            var posStart = Expect(TokenType.LuaLocal).Start;
+            if (Peek(TokenType.LuaFunction))
             {
-                name = id();
-                posEnd = name.End;
-                names.Add(name);
+                return funcdef(posStart);
             }
-            return new NonlocalStatement(names, filename, posStart, posEnd);
+            
+            // var expr = expr_stmt() as ExpStatement;
+            // return new ExpStatement(expr!, localStart, true); // 重新创建一个IsLocal的ExpStatement
+            var lhs = new List<Identifier>();
+            do
+            {
+                lhs.Add(id());
+            } while (PeekAndDiscard(TokenType.COMMA));
+
+            var rhs = new List<Exp>();
+            if (PeekAndDiscard(TokenType.EQ))
+            {
+                do
+                {
+                    var r = test();
+                    if (r == null) break;
+
+                    rhs.Add(r);
+                } while (PeekAndDiscard(TokenType.COMMA));
+            }
+            
+            var posEnd = rhs.Count > 0 ? rhs.Last().End : lhs.Last().End;            
+            var exp = new LocalVarsExp(lhs, rhs, filename, posStart, posEnd);
+            return new ExpStatement(exp, filename, posStart, posEnd);
+            
+            // var lhs = testlist_star_expr(lhsNames);
+            // {
+            //     var rhsStack = new Stack<Exp>();
+            //     while (PeekAndDiscard(TokenType.EQ))
+            //     {
+            //         Exp r = testlist_star_expr();
+            //         rhsStack.Push(r);
+            //     }
+            //
+            //     if (rhsStack.Count > 0)
+            //     {
+            //         Exp e = rhsStack.Pop();
+            //         while (rhsStack.Count > 0)
+            //         {
+            //             var ee = rhsStack.Pop();
+            //             e = new AssignExp(ee, Op.Assign, e, filename, ee.Start, e.End);
+            //         }
+            //
+            //         lhs = new AssignExp(lhs, Op.Assign, e, filename, lhs.Start, e.End);
+            //     }
+            // }
+            // return new ExpStatement(lhs, filename, lhs.Start, lhs.End, lhsNames);
         }
 
         //assert_stmt: 'assert' test [',' test]
@@ -1409,6 +1544,7 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 tests.Add(ExpectTest());
             }
+
             return new AssertStatement(tests, filename, posStart, tests.Last().End);
         }
 
@@ -1429,9 +1565,10 @@ eval_input: testlist NEWLINE* ENDMARKER
                 {
                     l = ExpectTest();
                     if (l != null)
-                    posEnd = l.End;
+                        posEnd = l.End;
                 }
             }
+
             return new ExecStatement(e, g, l, filename, posStart, posEnd);
         }
 
@@ -1440,79 +1577,83 @@ eval_input: testlist NEWLINE* ENDMARKER
             var token = Expect(TokenType.COMMENT);
             return new CommentStatement(filename, token.Start, token.End)
             {
-                Comment = (string)token.Value!
+                Comment = (string) token.Value!
             };
         }
 
         //compound_stmt: if_stmt | while_stmt | for_stmt | try_stmt | with_stmt | funcdef | classdef | decorated
-        public List<Statement> compound_stmt()
+        public List<Statement>? compound_stmt()
         {
             switch (lexer.Peek().Type)
             {
             case TokenType.If: return if_stmt();
             case TokenType.While: return while_stmt();
             case TokenType.For: return for_stmt();
-            case TokenType.Try: return try_stmt();
-            case TokenType.With: return with_stmt();
-            case TokenType.Def: return funcdef();
+            // case TokenType.Try: return try_stmt();
+            // case TokenType.With: return with_stmt();
+            case TokenType.LuaFunction: return funcdef();
             case TokenType.Class: return classdef();
-            case TokenType.AT: return decorated();
-            case TokenType.Async: return async_stmt();
-            default: throw Unexpected();
+            // case TokenType.AT: return decorated();
+            // case TokenType.Async: return async_stmt();
+            default: return null; //throw Unexpected();
             }
         }
 
         // async_stmt: 'async' (funcdef | with_stmt | for_stmt)
-        public List<Statement> async_stmt()
-        {
-            var posStart = Expect(TokenType.Async).Start;
-            List<Statement> stm;
-            switch (lexer.Peek().Type)
-            {
-            case TokenType.Def: stm = funcdef(); break;
-            case TokenType.With: stm = with_stmt(); break;
-            case TokenType.For: stm = for_stmt(); break;
-            default: throw Unexpected();
-            }
-            var filename = stm.Last().Filename;
-            var posEnd = stm.Last().End;
-            var asynk = new AsyncStatement(stm[0], filename, posStart, posEnd);
-            return new List<Statement> { asynk };
-        }
+        // public List<Statement> async_stmt()
+        // {
+        //     var posStart = Expect(TokenType.Async).Start;
+        //     List<Statement> stm;
+        //     switch (lexer.Peek().Type)
+        //     {
+        //     case TokenType.Def: stm = funcdef(); break;
+        //     case TokenType.With: stm = with_stmt(); break;
+        //     case TokenType.For: stm = for_stmt(); break;
+        //     default: throw Unexpected();
+        //     }
+        //     var filename = stm.Last().Filename;
+        //     var posEnd = stm.Last().End;
+        //     var asynk = new AsyncStatement(stm[0], filename, posStart, posEnd);
+        //     return new List<Statement> { asynk };
+        // }
 
         //if_stmt: 'if' test ':' suite ('elif' test ':' suite)* ['else' ':' suite]
         public List<Statement> if_stmt()
         {
             var posStart = Expect(TokenType.If).Start;
             Exp t = ExpectTest();
-            Expect(TokenType.COLON);
+            Expect(TokenType.LuaThen);
             var ts = suite();
             var stack = new Stack<Tuple<int, Exp?, SuiteStatement>>();
-            stack.Push(Tuple.Create(posStart, (Exp?)t, ts));
+            stack.Push(Tuple.Create(posStart, (Exp?) t, ts));
             var comments = CollectComments();
             while (PeekAndDiscard(TokenType.Elif, out var token))
             {
                 t = ExpectTest();
-                Expect(TokenType.COLON);
+                Expect(TokenType.LuaThen);
                 ts = suite();
                 ts.Statements.InsertRange(0, comments);
-                stack.Push(Tuple.Create(token.Start, (Exp?)t, ts));
+                stack.Push(Tuple.Create(token.Start, (Exp?) t, ts));
                 comments = CollectComments();
             }
+
             if (PeekAndDiscard(TokenType.Else, out var token2))
             {
-                Expect(TokenType.COLON);
+                // Expect(TokenType.COLON);
                 ts = suite();
                 ts.Statements.InsertRange(0, comments);
                 comments.Clear();
                 stack.Push(new Tuple<int, Exp?, SuiteStatement>(token2.Start, null, ts));
             }
 
+            Expect(TokenType.LuaEnd);
+
             SuiteStatement? es = null;
             if (stack.Peek().Item2 == null)
             {
                 es = stack.Pop().Item3;
             }
+
             IfStatement ifStmt;
             do
             {
@@ -1524,6 +1665,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                     filename, item.Item1, item.Item3.End);
                 es = new SuiteStatement(new List<Statement> { ifStmt }, filename, ifStmt.Start, ifStmt.End);
             } while (stack.Count > 0);
+
             var result = new List<Statement> { ifStmt };
             result.AddRange(comments);
             return result;
@@ -1535,16 +1677,17 @@ eval_input: testlist NEWLINE* ENDMARKER
             var posStart = Expect(TokenType.While).Start;
             var t = test();
             if (t is null) throw Unexpected();
-            Expect(TokenType.COLON);
+            Expect(TokenType.LuaDo); // Expect(TokenType.COLON);
             var s = suite();
+            Expect(TokenType.LuaEnd);
             var posEnd = s.End;
             SuiteStatement? es = null;
-            if (PeekAndDiscard(TokenType.Else))
-            {
-                Expect(TokenType.COLON);
-                es = suite();
-                posEnd = es.End;
-            }
+            // if (PeekAndDiscard(TokenType.Else))
+            // {
+            //     Expect(TokenType.COLON);
+            //     es = suite();
+            //     posEnd = es.End;
+            // }
             var w = new WhileStatement(t, s, es, filename, posStart, posEnd);
             return new List<Statement> { w };
         }
@@ -1554,20 +1697,44 @@ eval_input: testlist NEWLINE* ENDMARKER
         {
             var posStart = Expect(TokenType.For).Start;
             var ell = exprlist();
-            Expect(TokenType.In);
-            var tl = testlist();
-            Expect(TokenType.COLON);
-            var body = suite();
-            var posEnd = body.End;
-            SuiteStatement? es = null;
-            if (PeekAndDiscard(TokenType.Else))
+
+            var t = lexer.Get();
+            if (t.Type == TokenType.In) // for k,v in ...
             {
-                Expect(TokenType.COLON);
-                es = suite();
-                posEnd = es.End;
+                // Expect(TokenType.In);
+                var tl = testlist();
+                Expect(TokenType.LuaDo);
+                var body = suite();
+                var end = Expect(TokenType.LuaEnd);
+                var posEnd = end.End;
+                SuiteStatement? es = null;
+                // if (PeekAndDiscard(TokenType.Else))
+                // {
+                //     Expect(TokenType.COLON);
+                //     es = suite();
+                //     posEnd = es.End;
+                // }
+                var f = new ForStatement(ell, tl, body, es, filename, posStart, posEnd);
+                return new List<Statement> { f };
             }
-            var f = new ForStatement(ell, tl, body, es, filename, posStart, posEnd);
-            return new List<Statement> { f };
+            else if (t.Type == TokenType.EQ) // for i = 1, 10, 2 do ...
+            {
+                var tl = testlist();
+                Expect(TokenType.LuaDo);
+                var body = suite();
+                var end = Expect(TokenType.LuaEnd);
+                var posEnd = end.End;
+                SuiteStatement? es = null;
+                var f = new ForStatement(ell, tl, body, es, filename, posStart, posEnd)
+                {
+                    IsNumeric = true
+                };
+                return new List<Statement> { f };
+            }
+            else
+            {
+                throw Unexpected();
+            }
         }
 
         //try_stmt: ('try' ':' suite
@@ -1575,53 +1742,53 @@ eval_input: testlist NEWLINE* ENDMARKER
         //            ['else' ':' suite]
         //            ['finally' ':' suite] |
         //           'finally' ':' suite))
-        public List<Statement> try_stmt()
-        {
-            var posStart = Expect(TokenType.Try).Start;
-            Expect(TokenType.COLON);
-            string? c = null;
-            if (Peek(TokenType.COMMENT))
-            {
-                c = comment_stmt().Comment;
-            }
-            var body = suite();
-            body.Comment = c;
-            int posEnd = body.End;
-            var exHandlers = new List<ExceptHandler>();
-            Statement? elseHandler = null;
-            SuiteStatement? finallyHandler = null;
-
-            // Collect comments right before the except/finally.
-            var comments = CollectComments();
-            while (Peek(TokenType.Except, out var token))
-            {
-                var ec = except_clause();
-                Expect(TokenType.COLON);
-                var handler = suite();
-                handler.Statements.InsertRange(0, comments);
-                posEnd = handler.End;
-                exHandlers.Add(new ExceptHandler(ec.Exp, ec.Alias, handler, filename, token.Start, posEnd));
-                comments = CollectComments();
-                if (PeekAndDiscard(TokenType.Else))
-                {
-                    handler.Statements.AddRange(comments);
-                    Expect(TokenType.COLON);
-                    elseHandler = suite();
-                    posEnd = elseHandler.End;
-                }
-            }
-            if (PeekAndDiscard(TokenType.Finally))
-            {
-                Expect(TokenType.COLON);
-                finallyHandler = suite();
-                finallyHandler.Statements.InsertRange(0, comments);
-                posEnd = finallyHandler.End;
-            }
-            if (exHandlers.Count == 0 && finallyHandler == null)
-                throw Error(Resources.ErrExpectedAtLeastOneExceptClause);
-            var t = new TryStatement(body, exHandlers, elseHandler, finallyHandler, filename, posStart, posEnd);
-            return new List<Statement> { t };
-        }
+        // public List<Statement> try_stmt()
+        // {
+        //     var posStart = Expect(TokenType.Try).Start;
+        //     Expect(TokenType.COLON);
+        //     string? c = null;
+        //     if (Peek(TokenType.COMMENT))
+        //     {
+        //         c = comment_stmt().Comment;
+        //     }
+        //     var body = suite();
+        //     body.Comment = c;
+        //     int posEnd = body.End;
+        //     var exHandlers = new List<ExceptHandler>();
+        //     Statement? elseHandler = null;
+        //     SuiteStatement? finallyHandler = null;
+        //
+        //     // Collect comments right before the except/finally.
+        //     var comments = CollectComments();
+        //     while (Peek(TokenType.Except, out var token))
+        //     {
+        //         var ec = except_clause();
+        //         Expect(TokenType.COLON);
+        //         var handler = suite();
+        //         handler.Statements.InsertRange(0, comments);
+        //         posEnd = handler.End;
+        //         exHandlers.Add(new ExceptHandler(ec.Exp, ec.Alias, handler, filename, token.Start, posEnd));
+        //         comments = CollectComments();
+        //         if (PeekAndDiscard(TokenType.Else))
+        //         {
+        //             handler.Statements.AddRange(comments);
+        //             Expect(TokenType.COLON);
+        //             elseHandler = suite();
+        //             posEnd = elseHandler.End;
+        //         }
+        //     }
+        //     if (PeekAndDiscard(TokenType.Finally))
+        //     {
+        //         Expect(TokenType.COLON);
+        //         finallyHandler = suite();
+        //         finallyHandler.Statements.InsertRange(0, comments);
+        //         posEnd = finallyHandler.End;
+        //     }
+        //     if (exHandlers.Count == 0 && finallyHandler == null)
+        //         throw Error(Resources.ErrExpectedAtLeastOneExceptClause);
+        //     var t = new TryStatement(body, exHandlers, elseHandler, finallyHandler, filename, posStart, posEnd);
+        //     return new List<Statement> { t };
+        // }
 
         private List<CommentStatement> CollectComments()
         {
@@ -1631,78 +1798,78 @@ eval_input: testlist NEWLINE* ENDMARKER
                 Expect(TokenType.COMMENT);
                 cmts.Add(new CommentStatement(filename, token.Start, token.End)
                 {
-                    Comment = (string)token.Value!
+                    Comment = (string) token.Value!
                 });
                 PeekAndDiscard(TokenType.NEWLINE);
             }
-            return cmts;
 
+            return cmts;
         }
 
         // with_stmt: 'with' with_item (',' with_item)*  ':' suite
-        public List<Statement> with_stmt()
-        {
-            var posStart = Expect(TokenType.With).Start;
-            var ws = new List<WithItem>();
-            var w = with_item();
-            if (w != null)
-            {
-                ws.Add(w);
-                while (PeekAndDiscard(TokenType.COMMA))
-                {
-                    w = with_item();
-                    if (w == null)
-                        break;
-                    ws.Add(w);
-                }
-                Expect(TokenType.COLON);
-                var s = suite();
-                return new List<Statement> {
-                    new WithStatement(ws, s, filename, posStart, s.End)
-                };
-            }
-            else
-                return new List<Statement>();
-        }
+        // public List<Statement> with_stmt()
+        // {
+        //     var posStart = Expect(TokenType.With).Start;
+        //     var ws = new List<WithItem>();
+        //     var w = with_item();
+        //     if (w != null)
+        //     {
+        //         ws.Add(w);
+        //         while (PeekAndDiscard(TokenType.COMMA))
+        //         {
+        //             w = with_item();
+        //             if (w == null)
+        //                 break;
+        //             ws.Add(w);
+        //         }
+        //         Expect(TokenType.COLON);
+        //         var s = suite();
+        //         return new List<Statement> {
+        //             new WithStatement(ws, s, filename, posStart, s.End)
+        //         };
+        //     }
+        //     else
+        //         return new List<Statement>();
+        // }
 
         //with_item: test ['as' expr]
-        public WithItem? with_item()
-        {
-            var t = test();
-            if (t is null)
-                throw Unexpected();
-            Exp? e = null;
-            if (PeekAndDiscard(TokenType.As))
-                e = expr();
-            return new WithItem(t, e, filename, t.Start, (e ?? t).End);
-        }
+        // public WithItem? with_item()
+        // {
+        //     var t = test();
+        //     if (t is null)
+        //         throw Unexpected();
+        //     Exp? e = null;
+        //     if (PeekAndDiscard(TokenType.As))
+        //         e = expr();
+        //     return new WithItem(t, e, filename, t.Start, (e ?? t).End);
+        // }
 
         // NB compile.c makes sure that the default except clause is last
         //except_clause: 'except' [test ['as' NAME]]
-        public AliasedExp except_clause()
-        {
-            var token = Expect(TokenType.Except);
-            var posStart = token.Start;
-            var posEnd = token.End;
-            Exp? t = null;
-            Identifier? alias = null;
-            if (!Peek(TokenType.COLON))
-            {
-                t = ExpectTest();
-                posEnd = t.End;
-                if (PeekAndDiscard(TokenType.As))
-                {
-                    alias = id();
-                    posEnd = alias.End;
-                }
-                else if (PeekAndDiscard(TokenType.COMMA))
-                {
-                    alias = id();
-                    posEnd = token.End;
-                }
-            }
-            return new AliasedExp(t, alias, filename, posStart, posEnd);
-        }
+        // public AliasedExp except_clause()
+        // {
+        //     var token = Expect(TokenType.Except);
+        //     var posStart = token.Start;
+        //     var posEnd = token.End;
+        //     Exp? t = null;
+        //     Identifier? alias = null;
+        //     if (!Peek(TokenType.COLON))
+        //     {
+        //         t = ExpectTest();
+        //         posEnd = t.End;
+        //         if (PeekAndDiscard(TokenType.As))
+        //         {
+        //             alias = id();
+        //             posEnd = alias.End;
+        //         }
+        //         else if (PeekAndDiscard(TokenType.COMMA))
+        //         {
+        //             alias = id();
+        //             posEnd = token.End;
+        //         }
+        //     }
+        //     return new AliasedExp(t, alias, filename, posStart, posEnd);
+        // }
 
         //suite: simple_stmt | NEWLINE INDENT stmt+ DEDENT
         public SuiteStatement suite()
@@ -1712,24 +1879,47 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 stmts.Add(comment_stmt());
             }
+
             if (PeekAndDiscard(TokenType.NEWLINE))
             {
-                while (!Peek(TokenType.INDENT))
+                // while (!Peek(TokenType.INDENT))
+                // {
+                //     var token = Expect(TokenType.COMMENT);
+                //     stmts.Add(new CommentStatement(filename, token.Start, token.End) { Comment = (string)token.Value! });
+                //     Expect(TokenType.NEWLINE);
+                // }
+                while (Peek(TokenType.COMMENT))
                 {
-                    var token = Expect(TokenType.COMMENT);
-                    stmts.Add(new CommentStatement(filename, token.Start, token.End) { Comment = (string)token.Value! });
+                    var token = lexer.Get();
+                    stmts.Add(new CommentStatement(filename, token.Start, token.End)
+                        { Comment = (string) token.Value! });
                     Expect(TokenType.NEWLINE);
                 }
-                Expect(TokenType.INDENT);
-                while (!Peek(TokenType.EOF) && !PeekAndDiscard(TokenType.DEDENT))
+
+                // Expect(TokenType.INDENT);
+                PeekAndDiscard(TokenType.INDENT);
+
+                var countdown = 100; // 避免死循环
+                while (!Peek(TokenType.EOF, TokenType.LuaEnd, TokenType.Else, TokenType.Elif))
                 {
-                    stmts.AddRange(stmt());
+                    var list = stmt();
+                    stmts.AddRange(list);
+
+                    if (list.Count == 0 && (--countdown <= 0))
+                    {
+                        throw Unexpected();
+                    }
                 }
             }
             else
             {
                 var stmt = simple_stmt();
                 stmts.AddRange(stmt);
+            }
+
+            if (stmts.Count == 0)
+            {
+                return new SuiteStatement(stmts, filename, 0, 0);
             }
             return new SuiteStatement(stmts, filename, stmts[0].Start, stmts.Last().End);
         }
@@ -1739,29 +1929,29 @@ eval_input: testlist NEWLINE* ENDMARKER
         {
             while (PeekAndDiscard(TokenType.COMMENT))
                 ;
-            if (Peek(TokenType.Lambda))
-                return lambdef();
+            // if (Peek(TokenType.Lambda))
+            //     return lambdef();
             var consequent = or_test();
             if (consequent == null)
                 return consequent;
-            if (PeekAndDiscard(TokenType.If))
-            {
-                var condition = or_test();
-                if (condition == null)
-                    return null;
-                Expect(TokenType.Else);
-                var alternative = test();
-                if (alternative is null) throw Unexpected();
-                return new TestExp(consequent, condition, alternative, filename, consequent.Start, alternative.End);
-            }
-            if (consequent is Identifier id)
-            {
-                if (PeekAndDiscard(TokenType.COLONEQ))
-                {
-                    var e = ExpectTest();
-                    return new AssignmentExp(id, e, filename, id.Start, e.End);
-                }
-            }
+            // if (PeekAndDiscard(TokenType.If))
+            // {
+            //     var condition = or_test();
+            //     if (condition == null)
+            //         return null;
+            //     Expect(TokenType.Else);
+            //     var alternative = test();
+            //     if (alternative is null) throw Unexpected();
+            //     return new TestExp(consequent, condition, alternative, filename, consequent.Start, alternative.End);
+            // }
+            // if (consequent is Identifier id)
+            // {
+            //     if (PeekAndDiscard(TokenType.COLONEQ))
+            //     {
+            //         var e = ExpectTest();
+            //         return new AssignmentExp(id, e, filename, id.Start, e.End);
+            //     }
+            // }
             return consequent;
         }
 
@@ -1777,36 +1967,36 @@ eval_input: testlist NEWLINE* ENDMARKER
         //test_nocond: or_test | lambdef_nocond
         public Exp? test_nocond()
         {
-            if (Peek(TokenType.Lambda))
-                return lambdef_nocond();
+            // if (Peek(TokenType.Lambda))
+            //     return lambdef_nocond();
             return or_test();
         }
 
         //lambdef: 'lambda' [varargslist] ':' test
-        public Lambda? lambdef()
-        {
-            var posStart = Expect(TokenType.Lambda).Start;
-            var argsList = new List<VarArg>();
-            if (!Peek(TokenType.COLON))
-                argsList = varargslist();
-            Expect(TokenType.COLON);
-            var t = ExpectTest();
-            return new Lambda(argsList, t, filename, posStart, t.End);
-        }
+        // public Lambda? lambdef()
+        // {
+        //     var posStart = Expect(TokenType.Lambda).Start;
+        //     var argsList = new List<VarArg>();
+        //     if (!Peek(TokenType.COLON))
+        //         argsList = varargslist();
+        //     Expect(TokenType.COLON);
+        //     var t = ExpectTest();
+        //     return new Lambda(argsList, t, filename, posStart, t.End);
+        // }
 
         //lambdef_nocond: 'lambda' [varargslist] ':' test_nocond
-        public Lambda? lambdef_nocond()
-        {
-            var posStart = Expect(TokenType.Lambda).Start;
-            var argsList = new List<VarArg>();
-            if (!Peek(TokenType.COLON))
-                argsList = varargslist();
-            Expect(TokenType.COLON);
-            var body = test_nocond();
-            if (body == null)
-                return null;
-            return new Lambda(argsList, body, filename, posStart, body.End);
-        }
+        // public Lambda? lambdef_nocond()
+        // {
+        //     var posStart = Expect(TokenType.Lambda).Start;
+        //     var argsList = new List<VarArg>();
+        //     if (!Peek(TokenType.COLON))
+        //         argsList = varargslist();
+        //     Expect(TokenType.COLON);
+        //     var body = test_nocond();
+        //     if (body == null)
+        //         return null;
+        //     return new Lambda(argsList, body, filename, posStart, body.End);
+        // }
 
         //or_test: and_test ('or' and_test)*
         public Exp? or_test()
@@ -1821,6 +2011,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                     throw Unexpected();
                 e = new BinExp(Op.LogOr, e, r, filename, e.Start, r.End);
             }
+
             return e;
         }
 
@@ -1830,13 +2021,14 @@ eval_input: testlist NEWLINE* ENDMARKER
             Exp? e = not_test();
             if (e == null)
                 return e;
-            for (; ; )
+            for (;;)
             {
                 if (Peek(TokenType.COMMENT))
                 {
-                    e.Comment = (string)Expect(TokenType.COMMENT).Value!;
+                    e.Comment = (string) Expect(TokenType.COMMENT).Value!;
                     continue;
                 }
+
                 if (!PeekAndDiscard(TokenType.And))
                     break;
 
@@ -1845,6 +2037,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                     throw Unexpected();
                 e = new BinExp(Op.LogAnd, e, r, filename, e.Start, r.End);
             }
+
             return e;
         }
 
@@ -1856,6 +2049,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                 //$TODO: discarding a comment here.
                 Expect(TokenType.COMMENT);
             }
+
             if (PeekAndDiscard(TokenType.Not, out var token))
             {
                 var test = not_test();
@@ -1876,19 +2070,33 @@ eval_input: testlist NEWLINE* ENDMARKER
                 return e;
             int posStart = e.Start;
             Exp? inner;
-            for (; ; )
+            for (;;)
             {
                 Op op;
                 //'<'|'>'|'=='|'>='|'<='|'<>'|'!='|'in'|'not' 'in'|'is'|'is' 'not'
                 switch (lexer.Peek().Type)
                 {
-                case TokenType.OP_LT: op = Op.Lt; break;
-                case TokenType.OP_LE: op = Op.Le; break;
-                case TokenType.OP_GE: op = Op.Ge; break;
-                case TokenType.OP_GT: op = Op.Gt; break;
-                case TokenType.OP_EQ: op = Op.Eq; break;
-                case TokenType.OP_NE: op = Op.Ne; break;
-                case TokenType.In: op = Op.In; break;
+                case TokenType.OP_LT:
+                    op = Op.Lt;
+                    break;
+                case TokenType.OP_LE:
+                    op = Op.Le;
+                    break;
+                case TokenType.OP_GE:
+                    op = Op.Ge;
+                    break;
+                case TokenType.OP_GT:
+                    op = Op.Gt;
+                    break;
+                case TokenType.OP_EQ:
+                    op = Op.Eq;
+                    break;
+                case TokenType.OP_NE:
+                    op = Op.Ne;
+                    break;
+                case TokenType.In:
+                    op = Op.In;
+                    break;
                 case TokenType.Not:
                     Expect(TokenType.Not);
                     Expect(TokenType.In);
@@ -1896,16 +2104,17 @@ eval_input: testlist NEWLINE* ENDMARKER
                     if (inner is null) throw Unexpected();
                     e = new BinExp(Op.NotIn, e, inner, filename, posStart, inner.End);
                     continue;
-                case TokenType.Is:
-                    Expect(TokenType.Is);
-                    op = PeekAndDiscard(TokenType.Not) ? Op.IsNot : Op.Is;
-                    inner = expr();
-                if (inner is null) throw Unexpected();
-                    e = new BinExp(op, e, inner, filename, posStart, inner.End);
-                    continue;
+                // case TokenType.Is:
+                //     Expect(TokenType.Is);
+                //     op = PeekAndDiscard(TokenType.Not) ? Op.IsNot : Op.Is;
+                //     inner = expr();
+                // if (inner is null) throw Unexpected();
+                //     e = new BinExp(op, e, inner, filename, posStart, inner.End);
+                //     continue;
 
                 default: return e;
                 }
+
                 lexer.Get();
                 inner = expr();
                 if (inner is null) throw Unexpected();
@@ -1929,17 +2138,19 @@ eval_input: testlist NEWLINE* ENDMARKER
         //expr: xor_expr ('|' xor_expr)*
         public Exp? expr()
         {
-            var e = xor_expr();
-            if (e == null)
-                return e;
-            while (PeekAndDiscard(TokenType.OP_BAR))
-            {
-                var r = xor_expr();
-                if (r is null)
-                    throw Unexpected();
-                e = new BinExp(Op.BitOr, e, r, filename, e.Start, r.End);
-            }
-            return e;
+            // var e = xor_expr();
+            // if (e == null)
+            //     return e;
+            // while (PeekAndDiscard(TokenType.OP_BAR))
+            // {
+            //     var r = xor_expr();
+            //     if (r is null)
+            //         throw Unexpected();
+            //     e = new BinExp(Op.BitOr, e, r, filename, e.Start, r.End);
+            // }
+            // return e;
+
+            return arith_expr();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1952,58 +2163,59 @@ eval_input: testlist NEWLINE* ENDMARKER
         }
 
         //xor_expr: and_expr ('^' and_expr)*
-        public Exp? xor_expr()
-        {
-            var e = and_expr();
-            if (e is null)
-                return null;
-            while (PeekAndDiscard(TokenType.OP_CARET))
-            {
-                var r = and_expr();
-                if (r == null)
-                    throw Unexpected();
-                e = new BinExp(Op.Xor, e, r, filename, e.Start, r.End);
-            }
-            return e;
-        }
+        // public Exp? xor_expr()
+        // {
+        //     var e = and_expr();
+        //     if (e is null)
+        //         return null;
+        //     while (PeekAndDiscard(TokenType.OP_CARET))
+        //     {
+        //         var r = and_expr();
+        //         if (r == null)
+        //             throw Unexpected();
+        //         e = new BinExp(Op.Xor, e, r, filename, e.Start, r.End);
+        //     }
+        //     return e;
+        // }
 
         //and_expr: shift_expr ('&' shift_expr)*
-        public Exp? and_expr()
-        {
-            var e = shift_expr();
-            if (e == null)
-                return null;
-            while (PeekAndDiscard(TokenType.OP_AMP))
-            {
-                var r = shift_expr();
-                if (r == null)
-                    throw Unexpected();
-                e = new BinExp(Op.BitAnd, e, r, filename, e.Start, r.End);
-            }
-            return e;
-        }
+        // public Exp? and_expr()
+        // {
+        //     var e = shift_expr();
+        //     if (e == null)
+        //         return null;
+        // while (PeekAndDiscard(TokenType.OP_AMP))
+        // {
+        //     var r = shift_expr();
+        //     if (r == null)
+        //         throw Unexpected();
+        //     e = new BinExp(Op.BitAnd, e, r, filename, e.Start, r.End);
+        // }
+        //     return e;
+        // }
 
         //shift_expr: arith_expr (('<<'|'>>') arith_expr)*
-        public Exp? shift_expr()
-        {
-            var e = arith_expr();
-            if (e == null)
-                return null;
-            for (; ; )
-            {
-                Op op;
-                switch (lexer.Peek().Type)
-                {
-                case TokenType.OP_SHL: lexer.Get(); op = Op.Shl; break;
-                case TokenType.OP_SHR: lexer.Get(); op = Op.Shr; break;
-                default: return e;
-                }
-                var r = arith_expr();
-                if (r == null)
-                    throw Unexpected();
-                e = new BinExp(op, e, r, filename, e.Start, r.End);
-            }
-        }
+        // public Exp? shift_expr()
+        // {
+        //     var e = arith_expr();
+        // if (e == null)
+        //     return null;
+        // for (; ; )
+        // {
+        //     Op op;
+        //     switch (lexer.Peek().Type)
+        //     {
+        //     case TokenType.OP_SHL: lexer.Get(); op = Op.Shl; break;
+        //     case TokenType.OP_SHR: lexer.Get(); op = Op.Shr; break;
+        //     default: return e;
+        //     }
+        //     var r = arith_expr();
+        //     if (r == null)
+        //         throw Unexpected();
+        //     e = new BinExp(op, e, r, filename, e.Start, r.End);
+        // }
+        //     return e;
+        // }
 
         //arith_expr: term (('+'|'-') term)*
         public Exp? arith_expr()
@@ -2011,15 +2223,23 @@ eval_input: testlist NEWLINE* ENDMARKER
             var e = term();
             if (e is null)
                 return null;
-            for (; ; )
+            for (;;)
             {
                 Op op;
                 switch (lexer.Peek().Type)
                 {
-                case TokenType.OP_PLUS: op = Op.Add; break;
-                case TokenType.OP_MINUS: op = Op.Sub; break;
+                case TokenType.OP_PLUS:
+                    op = Op.Add;
+                    break;
+                case TokenType.OP_MINUS:
+                    op = Op.Sub;
+                    break;
+                case TokenType.LuaConcat:
+                    op = Op.Add;
+                    break; // TODO op??
                 default: return e;
                 }
+
                 lexer.Get();
                 var r = term();
                 if (r == null)
@@ -2034,18 +2254,25 @@ eval_input: testlist NEWLINE* ENDMARKER
             var e = factor();
             if (e == null)
                 return null;
-            for (; ; )
+            for (;;)
             {
                 Op op;
                 switch (lexer.Peek().Type)
                 {
-                case TokenType.OP_STAR: op = Op.Mul; break;
-                case TokenType.OP_SLASH: op = Op.Div; break;
-                case TokenType.OP_SLASHSLASH: op = Op.IDiv; break;
-                case TokenType.OP_PERCENT: op = Op.Mod; break;
-                case TokenType.AT: op = Op.MatMul; break;
+                case TokenType.OP_STAR:
+                    op = Op.Mul;
+                    break;
+                case TokenType.OP_SLASH:
+                    op = Op.Div;
+                    break;
+                // case TokenType.OP_SLASHSLASH: op = Op.IDiv; break;
+                case TokenType.OP_PERCENT:
+                    op = Op.Mod;
+                    break;
+                // case TokenType.AT: op = Op.MatMul; break;
                 default: return e;
                 }
+
                 lexer.Get();
                 var r = factor();
                 if (r is null)
@@ -2061,11 +2288,18 @@ eval_input: testlist NEWLINE* ENDMARKER
             int posStart;
             switch (lexer.Peek().Type)
             {
-            case TokenType.OP_PLUS:  posStart = lexer.Get().Start; op = Op.Add; break;
-            case TokenType.OP_MINUS: posStart = lexer.Get().Start; op = Op.Sub; break;
-            case TokenType.OP_TILDE: posStart = lexer.Get().Start; op = Op.Complement; break;
-            default: return power();
+            case TokenType.OP_PLUS:
+                posStart = lexer.Get().Start;
+                op = Op.Add;
+                break;
+            case TokenType.OP_MINUS:
+                posStart = lexer.Get().Start;
+                op = Op.Sub;
+                break;
+            // case TokenType.OP_TILDE: posStart = lexer.Get().Start; op = Op.Complement; break;
+            default: return atom_expr(); // return power();
             }
+
             var e = factor();
             if (e == null)
                 throw Unexpected();
@@ -2073,29 +2307,29 @@ eval_input: testlist NEWLINE* ENDMARKER
         }
 
         // power: atom_expr ['**' factor]
-        public Exp? power()
-        {
-            var e = atom_expr();
-            if (e == null)
-                return null;
-            if (PeekAndDiscard(TokenType.OP_STARSTAR))
-            {
-                var r = factor();
-                if (r == null)
-                    throw Unexpected();
-                e = new BinExp(Op.Exp, e, r, filename, e.Start, r.End);
-            }
-            return e;
-        }
+        // public Exp? power()
+        // {
+        //     var e = atom_expr();
+        //     if (e == null)
+        //         return null;
+        // if (PeekAndDiscard(TokenType.OP_STARSTAR))
+        // {
+        //     var r = factor();
+        //     if (r == null)
+        //         throw Unexpected();
+        //     e = new BinExp(Op.Exp, e, r, filename, e.Start, r.End);
+        // }
+        //     return e;
+        // }
 
         // atom_expr: ['await'] atom trailer*
         public Exp? atom_expr()
         {
-            int posStart = -1;
-            if (lexer.Peek().Type == TokenType.Await)
-            {
-                posStart = lexer.Get().Start;
-            }
+            // int posStart = -1;
+            // if (lexer.Peek().Type == TokenType.Await)
+            // {
+            //     posStart = lexer.Get().Start;
+            // }
             var e = atom();
             if (e is null)
                 return null;
@@ -2103,13 +2337,14 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 e = trailer(e);
             }
-            if (e is null)
-                return e;
-            if (posStart >= 0)
-            {
-                return new AwaitExp(e, e.Filename, posStart, e.End);
-            }
-            else
+
+            // if (e is null)
+            //     return e;
+            // if (posStart >= 0)
+            // {
+            //     return new AwaitExp(e, e.Filename, posStart, e.End);
+            // }
+            // else
             {
                 return e;
             }
@@ -2130,24 +2365,25 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
             case TokenType.LPAREN:
                 lexer.Get();
-                if (Peek(TokenType.Yield))
-                {
-                    e = yield_expr();
-                }
-                else
-                {
-                    e = testlist_comp(true);
-                }
+                // if (Peek(TokenType.Yield))
+                // {
+                //     e = yield_expr();
+                // }
+                // else
+            {
+                e = testlist_comp(true);
+            }
                 Expect(TokenType.RPAREN);
                 return e;
             case TokenType.LBRACKET:
                 var lbr = lexer.Get();
                 e = testlist_comp(false);
+                // e = atom();
                 var rbr = Expect(TokenType.RBRACKET);
-                if (e is CompFor)
-                {
-                    e = new ListComprehension(e, filename, lbr.Start, rbr.End);
-                }
+                // if (e is CompFor)
+                // {
+                //     e = new ListComprehension(e, filename, lbr.Start, rbr.End);
+                // }
                 return e;
             case TokenType.LBRACE:
                 t = lexer.Get();
@@ -2156,40 +2392,43 @@ eval_input: testlist NEWLINE* ENDMARKER
                 return e;
             case TokenType.ID:
                 t = lexer.Get();
-                return new Identifier((string)t.Value!, filename, t.Start, t.End);
+                return new Identifier((string) t.Value!, filename, t.Start, t.End);
             case TokenType.STRING:
                 t = lexer.Get();
                 var start = t.Start;
                 if (t.Value is Str str)
                 {
-                    for (; ; )
+                    for (;;)
                     {
                         if (PeekAndDiscard(TokenType.COMMENT))
                             continue;
                         if (!Peek(TokenType.STRING))
                             break;
                         t = lexer.Get();
-                        str = new Str(str.Value + ((Str)t.Value!).Value, filename, start, t.End);
+                        str = new Str(str.Value + ((Str) t.Value!).Value, filename, start, t.End);
                     }
+
                     return str;
                 }
-                var byteStr = (Bytes)t.Value!;
-                while (Peek(TokenType.STRING))
-                {
-                    t = lexer.Get();
-                    byteStr = new Bytes(byteStr.s + ((Bytes)t.Value!).s, filename, start, t.End);
-                }
-                return byteStr;
+
+                return null;
+            // var byteStr = (Bytes)t.Value!;
+            // while (Peek(TokenType.STRING))
+            // {
+            //     t = lexer.Get();
+            //     byteStr = new Bytes(byteStr.s + ((Bytes)t.Value!).s, filename, start, t.End);
+            // }
+            // return byteStr;
             case TokenType.INTEGER:
             case TokenType.LONGINTEGER:
                 t = lexer.Get();
                 return NumericLiteral(t);
             case TokenType.REAL:
                 t = lexer.Get();
-                return new RealLiteral((string)t.Value!, (double)t.NumericValue!, filename, t.Start, t.End);
+                return new RealLiteral((string) t.Value!, (double) t.NumericValue!, filename, t.Start, t.End);
             case TokenType.IMAG:
                 t = lexer.Get();
-                return new ImaginaryLiteral((string)t.Value!, (double)t.NumericValue!, filename, t.Start, t.End);
+                return new ImaginaryLiteral((string) t.Value!, (double) t.NumericValue!, filename, t.Start, t.End);
             case TokenType.ELLIPSIS:
                 t = lexer.Get();
                 return new Ellipsis(filename, t.Start, t.End);
@@ -2211,15 +2450,15 @@ eval_input: testlist NEWLINE* ENDMARKER
         {
             if (t.NumericValue is BigInteger bignum)
             {
-                return new BigLiteral((string)t.Value!, bignum, filename, t.Start, t.End);
+                return new BigLiteral((string) t.Value!, bignum, filename, t.Start, t.End);
             }
             else if (t.NumericValue is long l)
             {
-                return new LongLiteral((string)t.Value!, l, filename, t.Start, t.End);
+                return new LongLiteral((string) t.Value!, l, filename, t.Start, t.End);
             }
             else if (t.NumericValue is int i)
             {
-                return new IntLiteral((string)t.Value!, i, filename, t.Start, t.End);
+                return new IntLiteral((string) t.Value!, i, filename, t.Start, t.End);
             }
             else
                 throw Error(Resources.ErrUnparseableIntegerToken, t);
@@ -2239,26 +2478,27 @@ eval_input: testlist NEWLINE* ENDMARKER
             }
 
             Exp? e;
-            if (Peek(TokenType.OP_STAR))
-                e = star_expr();
-            else
-                e = test();
+            // if (Peek(TokenType.OP_STAR))
+            //     e = star_expr();
+            // else
+            e = test();
             if (Peek(TokenType.COMMENT))
             {
                 var comment = (string) Expect(TokenType.COMMENT).Value!;
                 if (e != null)
                     e.Comment = comment;
             }
+
             Exp e2;
-            if (Peek(TokenType.For))
-            {
-                e2 = comp_for(e!);
-                if (tuple)
-                    return new GeneratorExp(e!, e2, filename, e!.Start, e2.End);
-                else
-                    return new ListComprehension(e2, filename, e!.Start, e2.End);
-            }
-            else
+            // if (Peek(TokenType.For))
+            // {
+            //     e2 = comp_for(e!);
+            //     if (tuple)
+            //         return new GeneratorExp(e!, e2, filename, e!.Start, e2.End);
+            //     else
+            //         return new ListComprehension(e2, filename, e!.Start, e2.End);
+            // }
+            // else
             {
                 bool forceTuple = false;
                 var exprs = new List<Exp>();
@@ -2274,16 +2514,18 @@ eval_input: testlist NEWLINE* ENDMARKER
                         forceTuple = true;
                         break;
                     }
-                    if (Peek(TokenType.OP_STAR))
-                        e = star_expr();
-                    else
-                        e = test();
+
+                    // if (Peek(TokenType.OP_STAR))
+                    //     e = star_expr();
+                    // else
+                    e = test();
                     if (e is null)
                         throw Unexpected();
                     exprs.Add(e);
                     if (Peek(TokenType.COMMENT))
-                        e!.Comment = (string)Expect(TokenType.COMMENT).Value!;
+                        e!.Comment = (string) Expect(TokenType.COMMENT).Value!;
                 }
+
                 var posStart = startToken.Start;
                 var posEnd = exprs.Count > 0 ? exprs.Last().End : posStart;
                 if (tuple)
@@ -2323,7 +2565,7 @@ eval_input: testlist NEWLINE* ENDMARKER
             case TokenType.DOT:
                 lexer.Get();
                 tok = Expect(TokenType.ID);
-                var id = new Identifier((string)tok.Value!, filename, core.Start, tok.End);
+                var id = new Identifier((string) tok.Value!, filename, core.Start, tok.End);
                 return new AttributeAccess(core, id, filename, core.Start, tok.End);
             default:
                 throw Unexpected();
@@ -2341,6 +2583,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                     break;
                 subs.Add(subscript());
             }
+
             return subs;
         }
 
@@ -2355,42 +2598,43 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 start = test();
             }
-            if (PeekAndDiscard(TokenType.COLON))
-            {
-                if (!Peek(TokenType.COLON, TokenType.RBRACKET))
-                {
-                    end = test();
-                }
-                if (Peek(TokenType.COLON))
-                {
-                    stride = sliceop();
-                }
-            }
+
+            // if (PeekAndDiscard(TokenType.COLON))
+            // {
+            //     if (!Peek(TokenType.COLON, TokenType.RBRACKET))
+            //     {
+            //         end = test();
+            //     }
+            //     if (Peek(TokenType.COLON))
+            //     {
+            //         stride = sliceop();
+            //     }
+            // }
             //$REVIEW: fix this [2:]
             return new Slice(start, end, stride,
                 filename,
                 lexPos,
-                lexer.LineNumber);       //$BUG: should be position, not line number.
+                lexer.LineNumber); //$BUG: should be position, not line number.
         }
 
         //sliceop: ':' [Fact]
-        public Exp? sliceop()
-        {
-            Expect(TokenType.COLON);
-            return test();
-        }
+        // public Exp? sliceop()
+        // {
+        //     Expect(TokenType.COLON);
+        //     return test();
+        // }
 
         //exprlist: (expr|star_expr) (',' (expr|star_expr))* [',']
         public Exp exprlist()
         {
             var exprs = new List<Exp>();
-            for (; ; )
+            for (;;)
             {
                 Exp? e;
-                if (Peek(TokenType.OP_STAR))
-                    e = star_expr();
-                else
-                    e = expr();
+                // if (Peek(TokenType.OP_STAR))
+                //     e = star_expr();
+                // else
+                e = expr();
                 if (e is null)
                     throw Unexpected();
                 exprs.Add(e);
@@ -2399,6 +2643,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                 if (Peek(TokenType.In, TokenType.NEWLINE))
                     break;
             }
+
             if (exprs.Count == 1)
                 return exprs[0];
             else
@@ -2409,7 +2654,7 @@ eval_input: testlist NEWLINE* ENDMARKER
         public Exp testlist()
         {
             var exprs = new List<Exp>();
-            for (; ; )
+            for (;;)
             {
                 exprs.Add(ExpectTest());
                 if (!PeekAndDiscard(TokenType.COMMA))
@@ -2417,7 +2662,23 @@ eval_input: testlist NEWLINE* ENDMARKER
                 if (Peek(TokenType.COLON, TokenType.NEWLINE))
                     break;
             }
+
             return exprs.Count != 1 ? new ExpList(exprs, filename, exprs[0].Start, exprs.Last().End) : exprs[0];
+        }
+
+        private Exp tablekey(Exp k)
+        {
+            k = k switch
+            {
+                // 用于处理table的key初始化：{ a = 1 }
+                Identifier id => new Str(id.Name, id.Filename, id.Start, id.End),
+                // 用于处理table的key初始化：{ ["a"] = 1, [2] = 2, [x] = 3 }
+                PyList list when list.Initializer.Count != 1 => throw Unexpected(),
+                PyList list => list.Initializer[0],
+                _ => throw Unexpected()
+            };
+
+            return k;
         }
 
         //dictorsetmaker: ( (test ':' test (comp_for | (',' test ':' test)* [','])) |
@@ -2429,12 +2690,14 @@ eval_input: testlist NEWLINE* ENDMARKER
             var setItems = new List<Exp>();
             while (PeekAndDiscard(TokenType.COMMENT))
                 ;
+
+            // TODO 区分空列表和空字典
             if (Peek(TokenType.RBRACE, out var token))
                 return new DictInitializer(dictItems, filename, posStart, token.End);
 
             Exp? k = null;
             Exp? v;
-            if (PeekAndDiscard(TokenType.OP_STARSTAR))
+            /*if (PeekAndDiscard(TokenType.OP_STARSTAR))
             {
                 v = ExpectTest();
                 dictItems.Add((null, v));
@@ -2446,68 +2709,72 @@ eval_input: testlist NEWLINE* ENDMARKER
                 setItems.Add(new IterableUnpacker(v, filename, posStart, v.End));
                 posEnd = v.End;
             }
-            else
+            else*/
             {
                 k = ExpectTest();
                 posEnd = k.End;
             }
-            if (dictItems.Count > 0 || PeekAndDiscard(TokenType.COLON))
+            if (dictItems.Count > 0 || PeekAndDiscard(TokenType.EQ))
             {
                 if (k != null)
                 {
+                    k = tablekey(k);
                     v = ExpectTest();
-                    if (Peek(TokenType.For))
-                    {
-                        var f = comp_for(null);
-                        return new DictComprehension(k, v, f, filename, k.Start, f.End);
-                    }
-                    else
+                    // if (Peek(TokenType.For))
+                    // {
+                    //     var f = comp_for(null);
+                    //     return new DictComprehension(k, v, f, filename, k.Start, f.End);
+                    // }
+                    // else
                     {
                         // dict initializer
                         dictItems.Add((k, v));
                         posEnd = v.End;
                     }
                 }
+
                 while (PeekAndDiscard(TokenType.COMMA))
                 {
                     if (Peek(TokenType.RBRACE))
                         break;
-                    if (PeekAndDiscard(TokenType.OP_STARSTAR))
-                    {
-                        v = ExpectTest();
-                        dictItems.Add((null, v));
-                        posEnd = v.End;
-                    }
-                    else
+                    // if (PeekAndDiscard(TokenType.OP_STARSTAR))
+                    // {
+                    //     v = ExpectTest();
+                    //     dictItems.Add((null, v));
+                    //     posEnd = v.End;
+                    // }
+                    // else
                     {
                         k = test();
                         if (k != null)
                         {
+                            k = tablekey(k);
                             posEnd = k.End;
-                            Expect(TokenType.COLON);
+                            Expect(TokenType.EQ);
                             v = ExpectTest();
                             dictItems.Add((k, v));
                             posEnd = v.End;
                         }
                     }
                 }
+
                 return new DictInitializer(dictItems, filename, posStart, posEnd);
             }
             else
             {
                 // set comprehension
-                if (Peek(TokenType.For))
-                {
-                    var f = comp_for(k);
-                    return new SetComprehension(f, filename, k!.Start, k.End);
-                }
-                else if (PeekAndDiscard(TokenType.OP_STARSTAR))
-                {
-                    v = ExpectTest();
-                    dictItems.Add((null, v));
-                    return new DictInitializer(dictItems, filename, posStart, v.End);
-                }
-                else
+                // if (Peek(TokenType.For))
+                // {
+                //     var f = comp_for(k);
+                //     return new SetComprehension(f, filename, k!.Start, k.End);
+                // }
+                // else if (PeekAndDiscard(TokenType.OP_STARSTAR))
+                // {
+                //     v = ExpectTest();
+                //     dictItems.Add((null, v));
+                //     return new DictInitializer(dictItems, filename, posStart, v.End);
+                // }
+                // else
                 {
                     if (k != null)
                         setItems.Add(k);
@@ -2518,18 +2785,20 @@ eval_input: testlist NEWLINE* ENDMARKER
                         if (Peek(TokenType.RBRACE))
                             break;
 
-                        if (PeekAndDiscard(TokenType.OP_STAR))
-                        {
-                            v = ExpectTest();
-                            setItems.Add(new IterableUnpacker(v, filename, v.Start, v.End));
-                        }
-                        else
+                        // if (PeekAndDiscard(TokenType.OP_STAR))
+                        // {
+                        //     v = ExpectTest();
+                        //     setItems.Add(new IterableUnpacker(v, filename, v.Start, v.End));
+                        // }
+                        // else
                         {
                             k = ExpectTest();
                             setItems.Add(k);
                         }
                     }
-                    return new PySet(setItems, filename, setItems[0].Start, setItems[^1].End);
+
+                    // return new PySet(setItems, filename, setItems[0].Start, setItems[^1].End);
+                    return new PyList(setItems, filename, setItems[0].Start, setItems[^1].End);
                 }
             }
         }
@@ -2547,6 +2816,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                 args = arglist(name, token.Start).Args;
                 Expect(TokenType.RPAREN);
             }
+
             Expect(TokenType.COLON);
             var body = suite();
             return new List<Statement>
@@ -2558,7 +2828,7 @@ eval_input: testlist NEWLINE* ENDMARKER
         public Identifier id()
         {
             var token = Expect(TokenType.ID);
-            return new Identifier((string)token.Value!, filename, token.Start, token.End);
+            return new Identifier((string) token.Value!, filename, token.Start, token.End);
         }
 
         //arglist: (argument ',')* (argument [',']
@@ -2574,19 +2844,19 @@ eval_input: testlist NEWLINE* ENDMARKER
                 return new Application(core, args, keywords, stargs, kwargs, filename, core.Start, token.End);
             for (;;)
             {
-                if (PeekAndDiscard(TokenType.OP_STAR))
-                {
-                    if (stargs != null)
-                        throw Error(Resources.ErrMoreThanOneStargs);
-                    stargs = test();
-                }
-                else if (PeekAndDiscard(TokenType.OP_STARSTAR))
-                {
-                    if (kwargs != null)
-                        throw Error(Resources.ErrMoreThanOneKwargs);
-                    kwargs = test();
-                }
-                else
+                // if (PeekAndDiscard(TokenType.OP_STAR))
+                // {
+                //     if (stargs != null)
+                //         throw Error(Resources.ErrMoreThanOneStargs);
+                //     stargs = test();
+                // }
+                // else if (PeekAndDiscard(TokenType.OP_STARSTAR))
+                // {
+                //     if (kwargs != null)
+                //         throw Error(Resources.ErrMoreThanOneKwargs);
+                //     kwargs = test();
+                // }
+                // else
                 {
                     var arg = argument();
                     if (arg != null)
@@ -2598,6 +2868,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                 if (Peek(TokenType.RPAREN, out token))
                     break;
             }
+
             return new Application(core, args, keywords, stargs, kwargs, filename, posStart, token.End);
         }
         // The reason that keywords are test nodes instead of NAME is that using NAME
@@ -2612,12 +2883,13 @@ eval_input: testlist NEWLINE* ENDMARKER
             var posStart = argName.Start;
             var posEnd = argName.End;
             Exp? defval;
-            if (Peek(TokenType.For))
+            /*if (Peek(TokenType.For))
             {
                 CompFor f = comp_for(argName);
                 return new Argument(null, f, filename, posStart, f.End);
             }
-            else if (PeekAndDiscard(TokenType.EQ))
+            else*/
+            if (PeekAndDiscard(TokenType.EQ))
             {
                 defval = ExpectTest();
                 posEnd = defval.End;
@@ -2627,46 +2899,47 @@ eval_input: testlist NEWLINE* ENDMARKER
                 defval = argName;
                 argName = null;
             }
+
             return new Argument(argName, defval, filename, posStart, posEnd);
         }
 
         //comp_iter: comp_for | comp_if
         public CompIter comp_iter()
         {
-            if (Peek(TokenType.For) || Peek(TokenType.Async))
-                return comp_for(null);
-            else
-                return comp_if();
+            // if (Peek(TokenType.For)/* || Peek(TokenType.Async)*/)
+            //     return comp_for(null);
+            // else
+            return comp_if();
         }
 
         // comp_for: ['async'] sync_comp_for
-        public CompFor comp_for(Exp? projection)
-        {
-            bool async = PeekAndDiscard(TokenType.Async);
-            var compFor = sync_comp_for(projection);
-            compFor.Async = async;
-            return compFor;
-        }
+        // public CompFor comp_for(Exp? projection)
+        // {
+        //     bool async = false;//PeekAndDiscard(TokenType.Async);
+        //     var compFor = sync_comp_for(projection);
+        //     compFor.Async = async;
+        //     return compFor;
+        // }
 
         //sync_comp_for: 'for' exprlist 'in' or_test [comp_iter]
-        public CompFor sync_comp_for(Exp? projection)
-        {
-            var start = Expect(TokenType.For).Start;
-            var exprs = exprlist();
-            Expect(TokenType.In);
-            var collection = or_test();
-            if (collection is null)
-                throw Unexpected();
-            CompIter? next = null;
-            if (Peek(TokenType.For, TokenType.If))
-            {
-                next = comp_iter();
-            }
-            return new CompFor(projection, exprs, collection, filename, (projection != null? projection.Start : start), (next ?? collection).End)
-            {
-                next = next,
-            };
-        }
+        // public CompFor sync_comp_for(Exp? projection)
+        // {
+        //     var start = Expect(TokenType.For).Start;
+        //     var exprs = exprlist();
+        //     Expect(TokenType.In);
+        //     var collection = or_test();
+        //     if (collection is null)
+        //         throw Unexpected();
+        //     CompIter? next = null;
+        //     if (Peek(TokenType.For, TokenType.If))
+        //     {
+        //         next = comp_iter();
+        //     }
+        //     return new CompFor(projection, exprs, collection, filename, (projection != null? projection.Start : start), (next ?? collection).End)
+        //     {
+        //         next = next,
+        //     };
+        // }
 
         //comp_if: 'if' test_nocond [comp_iter]
         public CompIf comp_if()
@@ -2678,9 +2951,9 @@ eval_input: testlist NEWLINE* ENDMARKER
             CompIter? next = null;
             if (Peek(TokenType.For, TokenType.If))
                 next = comp_iter();
-            return new CompIf(test, filename, start, (next ?? test).End) 
+            return new CompIf(test, filename, start, (next ?? test).End)
             {
-                next = next 
+                next = next
             };
         }
 
@@ -2688,35 +2961,35 @@ eval_input: testlist NEWLINE* ENDMARKER
         //encoding_decl: NAME
 
         //yield_expr: 'yield' [yield_arg]
-        public Exp yield_expr()
-        {
-            var token = Expect(TokenType.Yield);
-            if (!Peek(stmt_follow))
-            {
-                return yield_arg(token.Start);
-            }
-            else
-            {
-                return new YieldExp(null, filename, token.Start, token.End);
-            }
-        }
+        // public Exp yield_expr()
+        // {
+        //     var token = Expect(TokenType.Yield);
+        //     if (!Peek(stmt_follow))
+        //     {
+        //         return yield_arg(token.Start);
+        //     }
+        //     else
+        //     {
+        //         return new YieldExp(null, filename, token.Start, token.End);
+        //     }
+        // }
 
         //yield_arg: 'from' test | testlist_star_expr
-        public Exp yield_arg(int posStart)
-        {
-            if (PeekAndDiscard(TokenType.From))
-            {
-                var t = test();
-                if (t is null)
-                    throw Unexpected();
-                return new YieldFromExp(t, filename, posStart, t.End);
-            }
-            else
-            {
-                var tl = testlist_star_expr();
-                return new YieldExp(tl, filename, posStart, tl.End);
-            }
-        }
+        // public Exp yield_arg(int posStart)
+        // {
+        //     if (PeekAndDiscard(TokenType.From))
+        //     {
+        //         var t = test();
+        //         if (t is null)
+        //             throw Unexpected();
+        //         return new YieldFromExp(t, filename, posStart, t.End);
+        //     }
+        //     else
+        //     {
+        //         var tl = testlist_star_expr();
+        //         return new YieldExp(tl, filename, posStart, tl.End);
+        //     }
+        // }
     }
 #pragma warning restore IDE1006 // Naming Styles
 }

@@ -30,9 +30,9 @@ namespace Pytocs.UnitTests.Syntax
     {
         private CommentFilter comfil = default!;
 
-        private void Create_CommentFilter(string pySrc)
+        private void Create_CommentFilter(string src)
         {
-            this.comfil = new CommentFilter(new Lexer("test.py", new StringReader(pySrc)));
+            this.comfil = new CommentFilter(new Lexer("test.py", new StringReader(src)));
         }
 
         private void AssertTokens(string encodedTokens)
@@ -49,12 +49,13 @@ namespace Pytocs.UnitTests.Syntax
                 case '(': Assert.Equal(TokenType.LPAREN, tok.Type); break;
                 case ')': Assert.Equal(TokenType.RPAREN, tok.Type); break;
                 case ':': Assert.Equal(TokenType.COLON, tok.Type); break;
-                case 'd': Assert.Equal(TokenType.Def, tok.Type); break;
+                case 'd': Assert.Equal(TokenType.LuaFunction, tok.Type); break;
+                case 'e': Assert.Equal(TokenType.LuaEnd, tok.Type); break;
                 case 'i': Assert.Equal(TokenType.ID, tok.Type); break;
                 case 'N': Assert.Equal(TokenType.NEWLINE, tok.Type); break;
                 case 'I': Assert.Equal(TokenType.INDENT, tok.Type); break;
                 case 'D': Assert.Equal(TokenType.DEDENT, tok.Type); break;
-                case '#': Assert.Equal(TokenType.COMMENT, tok.Type); break;
+                case 'C': Assert.Equal(TokenType.COMMENT, tok.Type); break;
                 default: throw new InvalidOperationException($"Unexpected {tok.Type}");
                 }
                 ++i;
@@ -65,49 +66,54 @@ namespace Pytocs.UnitTests.Syntax
         [Fact]
         public void Comfil_Simple()
         {
-            var pySrc = "hello\n";
-            Create_CommentFilter(pySrc);
+            var src = "hello\n";
+            Create_CommentFilter(src);
             AssertTokens("iN");
         }
 
         [Fact]
         public void Comfil_Indent()
         {
-            var pySrc = "hello\n    hello\n";
-            Create_CommentFilter(pySrc);
+            var src = "hello\n    hello\n";
+            Create_CommentFilter(src);
             AssertTokens("iNIiND");
         }
 
         [Fact]
         public void Comfil_Comment()
         {
-            var pySrc = "hello\n# hello\n";
-            Create_CommentFilter(pySrc);
-            AssertTokens("iN#N");
+            var src = "hello\n-- hello\n";
+            Create_CommentFilter(src);
+            AssertTokens("iNCN");
         }
 
         [Fact]
         public void Comfil_IndentedComment()
         {
-            var pySrc = "hello\n    #hello\nbye\n";
-            Create_CommentFilter(pySrc);
-            AssertTokens("iN#NiN");
+            var src = "hello\n    --hello\nbye\n";
+            Create_CommentFilter(src);
+            AssertTokens("iNICNDiN");
         }
 
         [Fact]
         public void Comfil_DedentedComment()
         {
-            var pySrc = "one\n  two\n  #dedent\nthree\n";
-            Create_CommentFilter(pySrc);
-            AssertTokens("iNIiN#NDiN");
+            var src = "one\n  two\n  --dedent\nthree\n";
+            Create_CommentFilter(src);
+            AssertTokens("iNIiNCNDiN");
         }
 
         [Fact]
         public void Comfil_DedentAfterDef()
         {
-            var pySrc = "def f():\n    id\n\n# comment\ndef g():\n";
-            Create_CommentFilter(pySrc);
-            AssertTokens("di():NIiND#Ndi():N");
+            var src = "function f()\n" +
+                      "    id\n" +
+                      "-- comment\n" +
+                      "end\n" +
+                      "function g()\n" +
+                      "end\n";
+            Create_CommentFilter(src);
+            AssertTokens("di()NIiNDCNeNdi()NeN");
         }
     }
 }

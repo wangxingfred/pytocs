@@ -27,12 +27,13 @@ using System.Threading.Tasks;
 namespace Pytocs.Core.Syntax
 {
     /// <summary>
-    /// Lexer for Python.
+    /// Lexer for Lua.
     /// </summary>
     public class Lexer : ILexer
     {
         private string filename;
-        private TextReader rdr;
+        // private TextReader rdr;
+        private Reader _reader;
         private Token token;
         private StringBuilder sb;
         private Stack<int> indents;
@@ -49,7 +50,8 @@ namespace Pytocs.Core.Syntax
         public Lexer(string filename, TextReader rdr)
         {
             this.filename = filename;
-            this.rdr = rdr;
+            // this.rdr = rdr;
+            this._reader = new Reader(rdr);
             this.indents = new Stack<int>();
             this.indents.Push(0);
             this.indent = 0;
@@ -66,53 +68,72 @@ namespace Pytocs.Core.Syntax
 
         static Dictionary<string, TokenType> keywords = new Dictionary<string, TokenType>()
         {
-            { "False", TokenType.False },
-            { "class", TokenType.Class },
-            { "finally", TokenType.Finally },
-            { "is", TokenType.Is },
-            { "return", TokenType.Return },
- 
-            { "None", TokenType.None },
-            { "continue", TokenType.Continue },
-            { "for", TokenType.For },
-            { "lambda", TokenType.Lambda },
-            { "try", TokenType.Try },
- 
-            { "True", TokenType.True },
-            { "def", TokenType.Def },
-            { "from", TokenType.From },
-            { "nonlocal", TokenType.Nonlocal },
-            { "while", TokenType.While },
- 
             { "and", TokenType.And },
-            { "del", TokenType.Del },
-            { "global", TokenType.Global },
-            { "not", TokenType.Not },
-            { "with", TokenType.With },
- 
-            { "as", TokenType.As },
-            { "elif", TokenType.Elif },
-            { "if", TokenType.If },
-            { "or", TokenType.Or },
-            { "yield", TokenType.Yield },
- 
-            { "assert", TokenType.Assert },
-            { "else", TokenType.Else },
-            { "import", TokenType.Import },
-            { "pass", TokenType.Pass },
- 
             { "break", TokenType.Break },
-            { "except", TokenType.Except },
+            { "do", TokenType.LuaDo },
+            { "else", TokenType.Else },
+            { "elseif", TokenType.Elif },
+            
+            { "end", TokenType.LuaEnd},
+            { "false", TokenType.False },
+            { "for", TokenType.For },
+            { "function", TokenType.LuaFunction },
+            
+            { "if", TokenType.If },
             { "in", TokenType.In },
-            { "raise", TokenType.Raise },
-
-            // { "exec", TokenType.Exec }, Python 2.x-ism
-            { "async", TokenType.Async },
-            { "await", TokenType.Await},
+            { "local", TokenType.LuaLocal},
+            { "nil", TokenType.None },
+            { "not", TokenType.Not },
+            { "or", TokenType.Or },
+            { "repeat", TokenType.LuaRepeat },
+            { "return", TokenType.Return },
+            { "then", TokenType.LuaThen },
+            { "true", TokenType.True },
+            { "util", TokenType.LuaUntil},
+            { "while", TokenType.While },
+            
+            // { "class", TokenType.Class },
+            // { "finally", TokenType.Finally },
+            // { "is", TokenType.Is },
+            
+            // { "continue", TokenType.Continue },
+            // { "lambda", TokenType.Lambda },
+            // { "try", TokenType.Try },
+            //
+            //
+            // { "def", TokenType.Def },
+            // { "from", TokenType.From },
+            // { "nonlocal", TokenType.Nonlocal },
+            //
+            //
+            //
+            // { "del", TokenType.Del },
+            // { "global", TokenType.Global },
+            // { "with", TokenType.With },
+            //
+            // { "as", TokenType.As },
+            // { "elif", TokenType.Elif },
+            //
+            //
+            // { "yield", TokenType.Yield },
+            //
+            // { "assert", TokenType.Assert },
+            //
+            // { "import", TokenType.Import },
+            // { "pass", TokenType.Pass },
+            //
+            //
+            // { "except", TokenType.Except },
+            //
+            // { "raise", TokenType.Raise },
+            //
+            // // { "exec", TokenType.Exec }, Python 2.x-ism
+            // { "async", TokenType.Async },
+            // { "await", TokenType.Await},
         };
         private bool rawString;
         private bool unicodeString;
-        private bool binaryString;
+        // private bool binaryString;
         private bool formatString;
         private int hexDigits;
         private int charConst;
@@ -146,62 +167,63 @@ namespace Pytocs.Core.Syntax
             Id,
             Quote,
             QuoteString,
-            Quote2,
-            QuoteString3,
-            QuoteString3Cr,
-            EQuote,
-            EQuote2,
+            // Quote2,
+            // QuoteString3,
+            // QuoteString3Cr,
+            // EQuote,
+            // EQuote2,
             Apos,
             AposString,
-            Apos2,
-            AposString3,
-            AposString3Cr,
-            EApos,
-            EApos2,
-            RawStringEscape,
+            // Apos2,
+            // AposString3,
+            // AposString3Cr,
+            // EApos,
+            // EApos2,
+            // RawStringEscape,
             Colon, 
 
             Zero,
             Decimal,
             Hex,
-            Octal,
-            Binary,
+            // Octal,
+            // Binary,
 
             Plus,
             Minus,
             Lt,
             Gt,
             Star,
-            StarStar,
+            // StarStar,
             Slash,
-            SlashSlash,
+            // SlashSlash,
             Percent,
-            Shl,
-            Shr,
+            // Shl,
+            // Shr,
             Eq,
             Bang,
-            Amp,
-            Bar,
+            // Amp,
+            // Bar,
             Caret,
             Cr,
             BlankLineComment,
             BlankLineCr,
             StringEscape,
-            Comment,
+            CommentShort,
+            CommentLong,
             Dot,
             Dot2,
             BackSlash,
             BackSlashCr,
-            RawStringPrefix,
+            // RawStringPrefix,
             RealFraction,
             RealExponent,
             RealExponentDigits,
-            UnicodeStringPrefix,
+            // UnicodeStringPrefix,
             StringEscapeHex,
-            BinaryStringPrefix,
-            FormatStringPrefix,
-            BinaryRawStringPrefix,
-            At,
+            // BinaryStringPrefix,
+            // FormatStringPrefix,
+            // BinaryRawStringPrefix,
+            // At,
         }
 
         private Token GetToken()
@@ -211,7 +233,7 @@ namespace Pytocs.Core.Syntax
             State oldState = (State) (-1);
             for (; ; )
             {
-                int c = rdr.Peek();
+                int c = _reader.Peek();
                 char ch = (char) c;
                 switch (st)
                 {
@@ -223,7 +245,7 @@ namespace Pytocs.Core.Syntax
                     case '\r': Transition(State.BlankLineCr); indent = 0; break;
                     case '\n': Advance(); ++LineNumber; indent = 0; break;
                     default:
-                        if (ch != '#')
+                        // if (ch != '-')  // TODO 判断注释--
                         {
                             int lastIndent = indents.Peek();
                             if (indent > lastIndent)
@@ -268,21 +290,29 @@ namespace Pytocs.Core.Syntax
                         }
                         ++posStart;
                         break;
-                    case '#': st = State.Comment; break;
+                    // case '#': st = State.Comment; break;
+                    case '#': return Token(TokenType.LuaLength);
                     case '+': st = State.Plus; break;
-                    case '-': st = State.Minus; break;
+                    case '-':
+                    {
+                        if (_reader.MatchAndConsume("-[[")) st = State.CommentLong;
+                        else if (_reader.MatchAndConsume("-")) st = State.CommentShort;
+                        else st = State.Minus;
+                        
+                        break;
+                    }
                     case '*': st = State.Star; break;
                     case '/': st = State.Slash; break;
                     case '%': st = State.Percent; break;
                     case '<': st = State.Lt; break;
                     case '>': st = State.Gt; break;
-                    case '&': st = State.Amp; break;
-                    case '|': st = State.Bar; break;
+                    // case '&': st = State.Amp; break;
+                    // case '|': st = State.Bar; break;
                     case '^': st = State.Caret; break;
-                    case '~': return Token(TokenType.OP_TILDE);
+                    // case '~': return Token(TokenType.OP_TILDE);
                     case '=': st = State.Eq; break;
-                    case '!': st = State.Bang; break;
-                    case '@': st = State.At; break;
+                    case '~': st = State.Bang; break;// TODO 从!改为~后，State命名要改一下 State.Tilde
+                    // case '@': st = State.At; break;
                     case '(': ++nestedParens; return Token(TokenType.LPAREN);
                     case '[': ++nestedBrackets; return Token(TokenType.LBRACKET);
                     case '{': ++nestedBraces; return Token(TokenType.LBRACE);
@@ -304,14 +334,14 @@ namespace Pytocs.Core.Syntax
                     case '8':
                     case '9':
                         sb.Append(ch); st = State.Decimal; break;
-                    case 'r':
-                    case 'R': sb.Append(ch); st = State.RawStringPrefix; break;
-                    case 'u':
-                    case 'U': sb.Append(ch); st = State.UnicodeStringPrefix; break;
-                    case 'b':
-                    case 'B': sb.Append(ch); st = State.BinaryStringPrefix; break;
-                    case 'f':
-                    case 'F': sb.Append(ch); st = State.FormatStringPrefix; break;
+                    // case 'r':
+                    // case 'R': sb.Append(ch); st = State.RawStringPrefix; break;
+                    // case 'u':
+                    // case 'U': sb.Append(ch); st = State.UnicodeStringPrefix; break;
+                    // case 'b':
+                    // case 'B': sb.Append(ch); st = State.BinaryStringPrefix; break;
+                    // case 'f':
+                    // case 'F': sb.Append(ch); st = State.FormatStringPrefix; break;
                     case '\"': rawString = false; unicodeString = false; st = State.Quote; break;
                     case '\'': rawString = false; unicodeString = false; st = State.Apos; break;
                     case '\\': st = State.BackSlash; break;
@@ -345,7 +375,7 @@ namespace Pytocs.Core.Syntax
                     if (ch == '\n')
                         Advance();
                     ++LineNumber;
-
+                
                     if (IsLogicalNewLine())
                     {
                         return Newline();
@@ -355,7 +385,8 @@ namespace Pytocs.Core.Syntax
                         st = State.Base;
                     }
                     break;
-                case State.Comment:
+                
+                case State.CommentShort:
                     switch (ch)
                     {
                     case '\r':
@@ -369,6 +400,24 @@ namespace Pytocs.Core.Syntax
                         break;
                     }
                     break;
+                case State.CommentLong:
+                    if (c < 0)
+                    {
+                        st = State.Base;
+                        break;
+                    }
+                    
+                    if (ch == ']')
+                    {
+                        if (_reader.MatchAndConsume("]]"))
+                        {
+                            AccumUntil('\r', State.Base);
+                            return Token(TokenType.COMMENT, sb.ToString(), State.Base);
+                        }
+                    }
+                    Accum(ch, st);
+                    break;
+                
                 case State.Id:
                     if (c >= 0 && (Char.IsLetterOrDigit(ch) || ch == '_'))
                     {
@@ -378,80 +427,82 @@ namespace Pytocs.Core.Syntax
                     }
                     return LookupId();
                 case State.Plus:
-                    if (c == '=')
-                    {
-                        return EatChToken(TokenType.ADDEQ);
-                    }
+                    // if (c == '=')
+                    // {
+                    //     return EatChToken(TokenType.ADDEQ);
+                    // }
                     return Token(TokenType.OP_PLUS);
                 case State.Minus:
                     switch (ch)
                     {
-                    case '=': return EatChToken(TokenType.SUBEQ);
-                    case '>': return EatChToken(TokenType.LARROW);
+                    // case '=': return EatChToken(TokenType.SUBEQ);
+                    // case '>': return EatChToken(TokenType.LARROW);
+                    // case '-': Transition(State.Comment); break;
+                    default: return Token(TokenType.OP_MINUS);
                     }
-                    return Token(TokenType.OP_MINUS);
+                    break;
                 case State.Star:
                     switch (ch)
                     {
-                    case '=': return EatChToken(TokenType.MULEQ);
-                    case '*': Transition(State.StarStar); break;
+                    // case '=': return EatChToken(TokenType.MULEQ);
+                    // case '*': Transition(State.StarStar); break;
                     default: return Token(TokenType.OP_STAR);
                     }
                     break;
-                case State.StarStar:
-                    switch (ch)
-                    {
-                    case '=': return EatChToken(TokenType.EXPEQ);
-                    default: return Token(TokenType.OP_STARSTAR);
-                    }
+                // case State.StarStar:
+                //     switch (ch)
+                //     {
+                //     case '=': return EatChToken(TokenType.EXPEQ);
+                //     default: return Token(TokenType.OP_STARSTAR);
+                //     }
                 case State.Slash:
                     switch (ch)
                     {
-                    case '/': Transition(State.SlashSlash); break;
-                    case '=': return EatChToken(TokenType.DIVEQ);
+                    // case '/': Transition(State.SlashSlash); break;
+                    // case '=': return EatChToken(TokenType.DIVEQ);
                     default: return Token(TokenType.OP_SLASH);
                     }
                     break;
-                case State.SlashSlash:
-                    switch (ch)
-                    {
-                    case '=': return EatChToken(TokenType.IDIVEQ);
-                    default: return Token(TokenType.OP_SLASHSLASH);
-                    }
+                // case State.SlashSlash:
+                //     switch (ch)
+                //     {
+                //     case '=': return EatChToken(TokenType.IDIVEQ);
+                //     default: return Token(TokenType.OP_SLASHSLASH);
+                //     }
                 case State.Percent:
                     switch (ch)
                     {
-                    case '=': return EatChToken(TokenType.MODEQ);
+                    // case '=': return EatChToken(TokenType.MODEQ);
                     default: return Token(TokenType.OP_PERCENT);
                     }
                 case State.Lt:
                     switch (ch)
                     {
-                    case '<': Transition(State.Shl); break;
+                    // case '<': Transition(State.Shl); break;
                     case '=': return EatChToken(TokenType.OP_LE);
                     default: return Token(TokenType.OP_LT);
                     }
                     break;
-                case State.Shl:
-                    switch (ch)
-                    {
-                    case '=': return EatChToken(TokenType.SHLEQ);
-                    default: return Token(TokenType.OP_SHL);
-                    }
+                // case State.Shl:
+                //     switch (ch)
+                //     {
+                //     case '=': return EatChToken(TokenType.SHLEQ);
+                //     default: return Token(TokenType.OP_SHL);
+                //     }
                 case State.Gt:
                     switch (ch)
                     {
-                    case '>': Transition(State.Shr); break;
+                    // case '>': Transition(State.Shr); break;
                     case '=': return EatChToken(TokenType.OP_GE);
                     default: return Token(TokenType.OP_GT);
                     }
                     break;
-                case State.Shr:
-                    switch (ch)
-                    {
-                    case '=': return EatChToken(TokenType.SHREQ);
-                    default: return Token(TokenType.OP_SHR);
-                    }
+                // case State.Shr:
+                //     switch (ch)
+                //     {
+                //     case '=': return EatChToken(TokenType.SHREQ);
+                //     default: return Token(TokenType.OP_SHR);
+                //     }
                 case State.Eq:
                     switch (ch)
                     {
@@ -464,56 +515,56 @@ namespace Pytocs.Core.Syntax
                     case '=': return EatChToken(TokenType.OP_NE);
                     default: throw Invalid(c, ch);
                     }
-                case State.Amp:
-                    switch (ch)
-                    {
-                    case '=': return EatChToken(TokenType.ANDEQ);
-                    default: return Token(TokenType.OP_AMP);
-                    }
-                case State.Bar:
-                    switch (ch)
-                    {
-                    case '=': return EatChToken(TokenType.OREQ);
-                    default: return Token(TokenType.OP_BAR);
-                    }
+                // case State.Amp:
+                //     switch (ch)
+                //     {
+                //     case '=': return EatChToken(TokenType.ANDEQ);
+                //     default: return Token(TokenType.OP_AMP);
+                //     }
+                // case State.Bar:
+                //     switch (ch)
+                //     {
+                //     case '=': return EatChToken(TokenType.OREQ);
+                //     default: return Token(TokenType.OP_BAR);
+                //     }
                 case State.Caret:
                     switch (ch)
                     {
-                    case '=': return EatChToken(TokenType.XOREQ);
+                    // case '=': return EatChToken(TokenType.XOREQ);
                     default: return Token(TokenType.OP_CARET);
                     }
-                case State.At:
-                    switch (ch)
-                    {
-                    case '=': return EatChToken(TokenType.ATEQ);
-                    default: return Token(TokenType.AT);
-                    }
+                // case State.At:
+                //     switch (ch)
+                //     {
+                //     case '=': return EatChToken(TokenType.ATEQ);
+                //     default: return Token(TokenType.AT);
+                //     }
                 case State.Zero:
                     switch (ch)
                     {
                     case 'x':
                     case 'X':
                         Accum(ch, State.Hex); break;
-                    case 'o':
-                    case 'O':
-                        Transition(State.Octal); break;
-                    case 'b':
-                    case 'B':
-                        Accum(ch, State.Binary); break;
+                    // case 'o':
+                    // case 'O':
+                    //     Transition(State.Octal); break;
+                    // case 'b':
+                    // case 'B':
+                    //     Accum(ch, State.Binary); break;
                     case 'e':
                     case 'E':
                         Accum(ch, State.RealExponent);
                         break;
-                    case 'L':
-                    case 'l':
-                        Advance();
-                        return Token(TokenType.LONGINTEGER, sb.ToString(), Convert.ToInt64(sb.ToString()));
+                    // case 'L':
+                    // case 'l':
+                    //     Advance();
+                    //     return Token(TokenType.LONGINTEGER, sb.ToString(), Convert.ToInt64(sb.ToString()));
                     case '.':
                         Accum(ch, State.RealFraction);
                         break;
-                    case 'j':
-                        Advance();
-                        return Imaginary();
+                    // case 'j':
+                    //     Advance();
+                    //     return Imaginary();
                     default:
                         if (Char.IsDigit(ch))
                         {
@@ -526,9 +577,9 @@ namespace Pytocs.Core.Syntax
                 case State.Decimal:
                     switch (ch)
                     {
-                    case 'L':
-                    case 'l':
-                        return LongInteger();
+                    // case 'L':
+                    // case 'l':
+                    //     return LongInteger();
                     case 'e':
                     case 'E':
                         Accum(ch, State.RealExponent);
@@ -536,12 +587,12 @@ namespace Pytocs.Core.Syntax
                     case '.':
                         Accum(ch, State.RealFraction);
                         break;
-                    case 'j':
-                        Advance();
-                        return Imaginary();
-                    case '_':
-                        Accum(ch, State.Decimal);
-                        break;
+                    // case 'j':
+                    //     Advance();
+                    //     return Imaginary();
+                    // case '_':
+                    //     Accum(ch, State.Decimal);
+                    //     break;
                     default:
                         if (Char.IsDigit(ch))
                         {
@@ -549,7 +600,7 @@ namespace Pytocs.Core.Syntax
                             break;
                         }
                         lexeme = sb.ToString();
-                        var sNumber = sb.Replace("_", "").ToString();
+                        var sNumber = lexeme;//sb.Replace("_", "").ToString();
                         if (int.TryParse(sNumber, NumberStyles.Any, CultureInfo.InvariantCulture, out var num))
                         {
                             return Token(TokenType.INTEGER, lexeme, num);
@@ -576,10 +627,10 @@ namespace Pytocs.Core.Syntax
                     case 'E':
                         Accum(ch, State.RealExponent);
                         break;
-                    case 'j':
-                    case 'J':
-                        Advance();
-                        return Imaginary();
+                    // case 'j':
+                    // case 'J':
+                    //     Advance();
+                    //     return Imaginary();
                     default:
                         if (Char.IsDigit(ch))
                         {
@@ -609,11 +660,11 @@ namespace Pytocs.Core.Syntax
                 case State.RealExponentDigits:
                     if (c < 0)
                         return Real();
-                    if (c == 'j' || c == 'J')
-                    {
-                        Advance();
-                        return Imaginary();
-                    }
+                    // if (c == 'j' || c == 'J')
+                    // {
+                    //     Advance();
+                    //     return Imaginary();
+                    // }
                     if (char.IsDigit(ch))
                     {
                         Accum(ch, State.RealExponentDigits);
@@ -646,29 +697,29 @@ namespace Pytocs.Core.Syntax
                     case 'd':
                     case 'e':
                     case 'f':
-                    case '_':
+                    // case '_':
                         Accum(ch, State.Hex);
                         break;
-                    case 'L':
-                    case 'l':
-                        Advance();
-                        lexeme = sb.ToString();
-                        var sNumber = sb.Replace("_", "").ToString(2, sb.Length - 2);
-                        if (long.TryParse(sNumber, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var l))
-                        {
-                            return Token(TokenType.LONGINTEGER, lexeme, l);
-                        }
-                        else if (BigInteger.TryParse(sNumber, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var big))
-                        {
-                            return Token(TokenType.LONGINTEGER, lexeme, big);
-                        }
-                        else
-                        {
-                            throw new NotImplementedException($"Unexpected error lexing '{sb}'.");
-                        }
+                    // case 'L':
+                    // case 'l':
+                    //     Advance();
+                    //     lexeme = sb.ToString();
+                    //     var sNumber = sb.Replace("_", "").ToString(2, sb.Length - 2);
+                    //     if (long.TryParse(sNumber, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var l))
+                    //     {
+                    //         return Token(TokenType.LONGINTEGER, lexeme, l);
+                    //     }
+                    //     else if (BigInteger.TryParse(sNumber, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var big))
+                    //     {
+                    //         return Token(TokenType.LONGINTEGER, lexeme, big);
+                    //     }
+                    //     else
+                    //     {
+                    //         throw new NotImplementedException($"Unexpected error lexing '{sb}'.");
+                    //     }
                     default:
                         lexeme = sb.ToString();
-                        sNumber = sb.Replace("_", "").ToString(2, sb.Length - 2);
+                        var sNumber = sb.ToString(2, sb.Length - 2);//sb.Replace("_", "").ToString(2, sb.Length - 2);
                         if (int.TryParse(sNumber, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var num))
                         {
                             return Token(TokenType.INTEGER, lexeme, num);
@@ -687,43 +738,43 @@ namespace Pytocs.Core.Syntax
                         }
                     }
                     break;
-                case State.Octal:
-                    switch (ch)
-                    {
-                    case '0':
-                    case '1':
-                    case '2':
-                    case '3':
-                    case '4':
-                    case '5':
-                    case '6':
-                    case '7':
-                        Accum(ch, State.Octal);
-                        break;
-                    case 'L':
-                    case 'l':
-                        return EatChToken(TokenType.LONGINTEGER, Convert.ToInt64(sb.ToString(), 8));
-                    default:
-                        return Token(TokenType.INTEGER, sb.ToString(), Convert.ToInt64(sb.ToString(), 8));
-                    }
-                    break;
-                case State.Binary:
-                    switch (ch)
-                    {
-                    case '0':
-                    case '1':
-                    case '_':
-                        Accum(ch, State.Binary);
-                        break;
-                    case 'L':
-                    case 'l':
-                        Advance();
-                        st = State.Base;
-                        return BinaryInteger(sb.ToString());
-                    default:
-                        return BinaryInteger(sb.ToString());
-                    }
-                    break;
+                // case State.Octal:
+                //     switch (ch)
+                //     {
+                //     case '0':
+                //     case '1':
+                //     case '2':
+                //     case '3':
+                //     case '4':
+                //     case '5':
+                //     case '6':
+                //     case '7':
+                //         Accum(ch, State.Octal);
+                //         break;
+                //     case 'L':
+                //     case 'l':
+                //         return EatChToken(TokenType.LONGINTEGER, Convert.ToInt64(sb.ToString(), 8));
+                //     default:
+                //         return Token(TokenType.INTEGER, sb.ToString(), Convert.ToInt64(sb.ToString(), 8));
+                //     }
+                //     break;
+                // case State.Binary:
+                //     switch (ch)
+                //     {
+                //     case '0':
+                //     case '1':
+                //     case '_':
+                //         Accum(ch, State.Binary);
+                //         break;
+                //     case 'L':
+                //     case 'l':
+                //         Advance();
+                //         st = State.Base;
+                //         return BinaryInteger(sb.ToString());
+                //     default:
+                //         return BinaryInteger(sb.ToString());
+                //     }
+                //     break;
                 case State.BlankLineComment:
                     switch (ch)
                     {
@@ -737,55 +788,56 @@ namespace Pytocs.Core.Syntax
                     }
                     break;
 
-                case State.RawStringPrefix:
-                    switch (ch)
-                    {
-                    case '"': rawString = true; sb.Clear(); Transition(State.Quote); break;
-                    case '\'': rawString = true; sb.Clear(); Transition(State.Apos); break;
-                    case 'b':
-                    case 'B': st = State.BinaryRawStringPrefix; Advance(); break;
-                    default: st = State.Id; break;
-                    }
-                    break;
-                case State.UnicodeStringPrefix:
-                    switch (ch)
-                    {
-                    case '"': unicodeString = true; sb.Clear(); Transition(State.Quote); break;
-                    case '\'': unicodeString = true; sb.Clear(); Transition(State.Apos); break;
-                    default: st = State.Id; break;
-                    }
-                    break;
-                case State.BinaryStringPrefix:
-                    switch (ch)
-                    {
-                    case '"': binaryString = true; sb.Clear(); Transition(State.Quote); break;
-                    case '\'': binaryString = true; sb.Clear(); Transition(State.Apos); break;
-                    case 'r':
-                    case 'R': sb.Append(ch); st = State.BinaryRawStringPrefix; Advance(); break;
-                    default: st = State.Id; break;
-                    }
-                    break;
-                case State.BinaryRawStringPrefix:
-                    switch (ch)
-                    {
-                    case '"': binaryString = true; rawString = true; sb.Clear(); Transition(State.Quote); break;
-                    case '\'': binaryString = true; rawString = true; sb.Clear(); Transition(State.Apos); break;
-                    default: st = State.Id; break;
-                    }
-                    break;
-                case State.FormatStringPrefix:
-                    switch (ch)
-                    {
-                    case '"': formatString = true; sb.Clear(); Transition(State.Quote); break;
-                    case '\'': formatString = true; sb.Clear(); Transition(State.Apos); break;
-                    default: st = State.Id; break;
-                    }
-                    break;
+                // case State.RawStringPrefix:
+                //     switch (ch)
+                //     {
+                //     case '"': rawString = true; sb.Clear(); Transition(State.Quote); break;
+                //     case '\'': rawString = true; sb.Clear(); Transition(State.Apos); break;
+                //     case 'b':
+                //     case 'B': st = State.BinaryRawStringPrefix; Advance(); break;
+                //     default: st = State.Id; break;
+                //     }
+                //     break;
+                // case State.UnicodeStringPrefix:
+                //     switch (ch)
+                //     {
+                //     case '"': unicodeString = true; sb.Clear(); Transition(State.Quote); break;
+                //     case '\'': unicodeString = true; sb.Clear(); Transition(State.Apos); break;
+                //     default: st = State.Id; break;
+                //     }
+                //     break;
+                // case State.BinaryStringPrefix:
+                //     switch (ch)
+                //     {
+                //     case '"': binaryString = true; sb.Clear(); Transition(State.Quote); break;
+                //     case '\'': binaryString = true; sb.Clear(); Transition(State.Apos); break;
+                //     case 'r':
+                //     case 'R': sb.Append(ch); st = State.BinaryRawStringPrefix; Advance(); break;
+                //     default: st = State.Id; break;
+                //     }
+                //     break;
+                // case State.BinaryRawStringPrefix:
+                //     switch (ch)
+                //     {
+                //     case '"': binaryString = true; rawString = true; sb.Clear(); Transition(State.Quote); break;
+                //     case '\'': binaryString = true; rawString = true; sb.Clear(); Transition(State.Apos); break;
+                //     default: st = State.Id; break;
+                //     }
+                //     break;
+                // case State.FormatStringPrefix:
+                //     switch (ch)
+                //     {
+                //     case '"': formatString = true; sb.Clear(); Transition(State.Quote); break;
+                //     case '\'': formatString = true; sb.Clear(); Transition(State.Apos); break;
+                //     default: st = State.Id; break;
+                //     }
+                //     break;
 
                 case State.Quote:
                     switch (ch)
                     {
-                    case '"': Transition(State.Quote2); break;
+                    // case '"': Transition(State.Quote2); break;
+                    case '"': return EatChToken(TokenType.STRING, CreateStringLiteral(false));
                     case '\\':
                         oldState = State.QuoteString;
                         Accum(ch, State.StringEscape);
@@ -796,7 +848,8 @@ namespace Pytocs.Core.Syntax
                 case State.Apos:
                     switch (ch)
                     {
-                    case '\'': Transition(State.Apos2); break;
+                    // case '\'': Transition(State.Apos2); break;
+                    case '\'': return EatChToken(TokenType.STRING, CreateStringLiteral(false));
                     case '\\':
                         oldState = State.AposString;
                         Accum(ch, State.StringEscape);
@@ -805,20 +858,20 @@ namespace Pytocs.Core.Syntax
                     }
                     break;
 
-                case State.Quote2:
-                    switch (ch)
-                    {
-                    case '"': Transition(State.QuoteString3); break;
-                    default: return Token(TokenType.STRING, CreateStringLiteral(false));
-                    }
-                    break;
-                case State.Apos2:
-                    switch (ch)
-                    {
-                    case '\'': Transition(State.AposString3); break;
-                    default: return Token(TokenType.STRING, CreateStringLiteral(false));
-                    }
-                    break;
+                // case State.Quote2:
+                //     switch (ch)
+                //     {
+                //     case '"': Transition(State.QuoteString3); break;
+                //     default: return Token(TokenType.STRING, CreateStringLiteral(false));
+                //     }
+                //     break;
+                // case State.Apos2:
+                //     switch (ch)
+                //     {
+                //     case '\'': Transition(State.AposString3); break;
+                //     default: return Token(TokenType.STRING, CreateStringLiteral(false));
+                //     }
+                //     break;
 
                 case State.QuoteString:
                     switch (ch)
@@ -851,71 +904,71 @@ namespace Pytocs.Core.Syntax
                     }
                     break;
 
-                case State.QuoteString3:
-                    switch (ch)
-                    {
-                    case '\"': Transition(State.EQuote); break;
-                    case '\r': ++LineNumber; AccumString(c, State.QuoteString3Cr); break;
-                    case '\n': ++LineNumber; AccumString(c, st); break;
-                    default: AccumString(c, st); break;
-                    }
-                    break;
-                case State.AposString3:
-                    switch (ch)
-                    {
-                    case '\'': Transition(State.EApos); break;
-                    case '\r': ++LineNumber; AccumString(c, State.AposString3Cr); break;
-                    case '\n': ++LineNumber; AccumString(c, st); break;
-                    default: AccumString(c, st); break;
-                    }
-                    break;
+                // case State.QuoteString3:
+                //     switch (ch)
+                //     {
+                //     case '\"': Transition(State.EQuote); break;
+                //     case '\r': ++LineNumber; AccumString(c, State.QuoteString3Cr); break;
+                //     case '\n': ++LineNumber; AccumString(c, st); break;
+                //     default: AccumString(c, st); break;
+                //     }
+                //     break;
+                // case State.AposString3:
+                //     switch (ch)
+                //     {
+                //     case '\'': Transition(State.EApos); break;
+                //     case '\r': ++LineNumber; AccumString(c, State.AposString3Cr); break;
+                //     case '\n': ++LineNumber; AccumString(c, st); break;
+                //     default: AccumString(c, st); break;
+                //     }
+                //     break;
 
-                case State.QuoteString3Cr:
-                    switch (ch)
-                    {
-                    case '\'': Transition(State.EQuote); break;
-                    case '\r': ++LineNumber; AccumString(c, st); break;
-                    default: AccumString(c, State.QuoteString3); break;
-                    }
-                    break;
-                case State.AposString3Cr:
-                    switch (ch)
-                    {
-                    case '\'': Transition(State.EApos); break;
-                    case '\r': ++LineNumber; AccumString(c, st); break;
-                    default: AccumString(c, State.AposString3); break;
-                    }
-                    break;
+                // case State.QuoteString3Cr:
+                //     switch (ch)
+                //     {
+                //     case '\'': Transition(State.EQuote); break;
+                //     case '\r': ++LineNumber; AccumString(c, st); break;
+                //     default: AccumString(c, State.QuoteString3); break;
+                //     }
+                //     break;
+                // case State.AposString3Cr:
+                //     switch (ch)
+                //     {
+                //     case '\'': Transition(State.EApos); break;
+                //     case '\r': ++LineNumber; AccumString(c, st); break;
+                //     default: AccumString(c, State.AposString3); break;
+                //     }
+                //     break;
 
-                case State.EQuote:
-                    switch (ch)
-                    {
-                    case '\"': Transition(State.EQuote2); break;
-                    default: sb.Append('\"'); AccumString(c, State.QuoteString3); break;
-                    }
-                    break;
-                case State.EApos:
-                    switch (ch)
-                    {
-                    case '\'': Transition(State.EApos2); break;
-                    default: sb.Append('\''); AccumString(c, State.AposString3); break;
-                    }
-                    break;
+                // case State.EQuote:
+                //     switch (ch)
+                //     {
+                //     case '\"': Transition(State.EQuote2); break;
+                //     default: sb.Append('\"'); AccumString(c, State.QuoteString3); break;
+                //     }
+                //     break;
+                // case State.EApos:
+                //     switch (ch)
+                //     {
+                //     case '\'': Transition(State.EApos2); break;
+                //     default: sb.Append('\''); AccumString(c, State.AposString3); break;
+                //     }
+                //     break;
 
-                case State.EQuote2:
-                    switch (ch)
-                    {
-                    case '\"': return EatChToken(TokenType.STRING, CreateStringLiteral(true));
-                    default: sb.Append("\"\""); AccumString(c, State.QuoteString3); break;
-                    }
-                    break;
-                case State.EApos2:
-                    switch (ch)
-                    {
-                    case '\'': return EatChToken(TokenType.STRING, CreateStringLiteral(true));
-                    default: sb.Append("\'\'"); AccumString(c, State.AposString3); break;
-                    }
-                    break;
+                // case State.EQuote2:
+                //     switch (ch)
+                //     {
+                //     case '\"': return EatChToken(TokenType.STRING, CreateStringLiteral(true));
+                //     default: sb.Append("\"\""); AccumString(c, State.QuoteString3); break;
+                //     }
+                //     break;
+                // case State.EApos2:
+                //     switch (ch)
+                //     {
+                //     case '\'': return EatChToken(TokenType.STRING, CreateStringLiteral(true));
+                //     default: sb.Append("\'\'"); AccumString(c, State.AposString3); break;
+                //     }
+                //     break;
 
                 case State.StringEscape:
                     if (c < 0)
@@ -1015,13 +1068,13 @@ namespace Pytocs.Core.Syntax
                 case State.Dot2:
                     switch (ch)
                     {
-                    case '.': return EatChToken(TokenType.ELLIPSIS);
-                    default: this.token = Token(TokenType.DOT); return Token(TokenType.DOT);
+                    case '.': return EatChToken(TokenType.LuaEllipsis);
+                    default: return Token(TokenType.LuaConcat);
                     }
                 case State.Colon:
                     switch (ch)
                     {
-                    case '=': return EatChToken(TokenType.COLONEQ);
+                    // case '=': return EatChToken(TokenType.COLONEQ);
                     default:
                         return Token(TokenType.COLON);
                     }
@@ -1032,28 +1085,28 @@ namespace Pytocs.Core.Syntax
         }
 
         // Python and C# binary literals look the same.
-        private Token BinaryInteger(string lexeme)
-        {
-            var (value, digits) = ConvertBinaryToInt(lexeme, 2);
-            if (digits < 32)
-                return Token(TokenType.INTEGER, lexeme, (int) value);
-            else
-                return Token(TokenType.LONGINTEGER, lexeme, value);
-        }
-
-        private Token LongInteger()
-        {
-            Advance();
-            var value = sb.ToString();
-            try
-            {
-                return Token(TokenType.LONGINTEGER, value, Convert.ToInt64(value));
-            }
-            catch
-            {
-                return Token(TokenType.LONGINTEGER, value, (long)Convert.ToUInt64(value));
-            }
-        }
+        // private Token BinaryInteger(string lexeme)
+        // {
+        //     var (value, digits) = ConvertBinaryToInt(lexeme, 2);
+        //     if (digits < 32)
+        //         return Token(TokenType.INTEGER, lexeme, (int) value);
+        //     else
+        //         return Token(TokenType.LONGINTEGER, lexeme, value);
+        // }
+        //
+        // private Token LongInteger()
+        // {
+        //     Advance();
+        //     var value = sb.ToString();
+        //     try
+        //     {
+        //         return Token(TokenType.LONGINTEGER, value, Convert.ToInt64(value));
+        //     }
+        //     catch
+        //     {
+        //         return Token(TokenType.LONGINTEGER, value, (long)Convert.ToUInt64(value));
+        //     }
+        // }
 
         private Exception Error(string errorMsg)
         {
@@ -1063,14 +1116,14 @@ namespace Pytocs.Core.Syntax
         private Exp CreateStringLiteral(bool longLiteral)
         {
             Exp e;
-            if (binaryString)
-            {
-                e = new Bytes(sb.ToString(), filename, posStart, posEnd)
-                {
-                    Raw = rawString
-                };
-            }
-            else
+            // if (binaryString)
+            // {
+            //     e = new Bytes(sb.ToString(), filename, posStart, posEnd)
+            //     {
+            //         Raw = rawString
+            //     };
+            // }
+            // else
             {
                 e = new Str(sb.ToString(), filename, posStart, posEnd)
                 {
@@ -1080,7 +1133,7 @@ namespace Pytocs.Core.Syntax
                     Format = formatString,
                 };
             }
-            binaryString = false;
+            // binaryString = false;
             rawString = false;
             unicodeString = false;
             longLiteral = false;
@@ -1088,21 +1141,21 @@ namespace Pytocs.Core.Syntax
             return e;
         }
 
-        private (long, int) ConvertBinaryToInt(string binaryString, int i)
-        {
-            long n = 0;
-            int digits = 0;
-            for (; i < binaryString.Length; ++i)
-            {
-                int ch = binaryString[i];
-                if (ch != '_')
-                {
-                    n = (n << 1) | (ch == '1' ? 1L : 0L);
-                    ++digits;
-                }
-            }
-            return (n, digits);
-        }
+        // private (long, int) ConvertBinaryToInt(string binaryString, int i)
+        // {
+        //     long n = 0;
+        //     int digits = 0;
+        //     for (; i < binaryString.Length; ++i)
+        //     {
+        //         int ch = binaryString[i];
+        //         if (ch != '_')
+        //         {
+        //             n = (n << 1) | (ch == '1' ? 1L : 0L);
+        //             ++digits;
+        //         }
+        //     }
+        //     return (n, digits);
+        // }
 
         private bool IsLogicalNewLine()
         {
@@ -1118,20 +1171,26 @@ namespace Pytocs.Core.Syntax
             return Token(TokenType.NEWLINE, State.Start);
         }
 
-        private void Accum(char ch, State st)
+        private void Accum(char ch, State s)
         {
             Advance();
             this.sb.Append(ch);
-            this.st = st;
+            this.st = s;
         }
 
-        private void AccumString(int c, State st)
+        private void AccumUntil(char ch, State s)
+        {
+            _reader.ReadUntil(ch, sb);
+            this.st = s;
+        }
+
+        private void AccumString(int c, State s)
         {
             if (c < 0)
                 throw Error(Resources.ErrUnexpectedEndOfStringConstant);
             Advance();
             this.sb.Append((char) c);
-            this.st = st;
+            this.st = s;
         }
 
         private Exception Invalid(int c, char ch)
@@ -1154,6 +1213,7 @@ namespace Pytocs.Core.Syntax
         {
             if (t == TokenType.NEWLINE)
             {
+                // TODO 考虑多行注释？
                 this.lastLineEndedInComment = (this.lastTokenType == TokenType.COMMENT);
             }
             this.st = newState;
@@ -1171,7 +1231,7 @@ namespace Pytocs.Core.Syntax
 
         private void Advance()
         {
-            rdr.Read();
+            _reader.Read();
             ++posEnd;
         }
 

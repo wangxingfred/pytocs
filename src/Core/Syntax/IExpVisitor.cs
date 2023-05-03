@@ -27,8 +27,9 @@ namespace Pytocs.Core.Syntax
         void VisitAliasedExp(AliasedExp aliasedExp);
         void VisitApplication(Application appl);
         void VisitArrayRef(ArrayRef arrayRef);
+        void VisitLocalVarsExp(LocalVarsExp localVarsExp);
         void VisitAssignExp(AssignExp assignExp);
-        void VisitAssignmentExp(AssignmentExp assignmentExp);
+        // void VisitAssignmentExp(AssignmentExp assignmentExp);
         void VisitAwait(AwaitExp awaitExp);
         void VisitBigLiteral(BigLiteral bigLiteral);
         void VisitBinExp(BinExp bin);
@@ -70,8 +71,9 @@ namespace Pytocs.Core.Syntax
         T VisitAliasedExp(AliasedExp aliasedExp);
         T VisitApplication(Application appl);
         T VisitArrayRef(ArrayRef arrayRef);
+        T VisitLocalVarsExp(LocalVarsExp localVarsExp);
         T VisitAssignExp(AssignExp assignExp);
-        T VisitAssignmentExp(AssignmentExp assignmentExp);
+        // T VisitAssignmentExp(AssignmentExp assignmentExp);
         T VisitAwait(AwaitExp awaitExp);
         T VisitBigLiteral(BigLiteral bigLiteral);
         T VisitBinExp(BinExp bin);
@@ -113,8 +115,9 @@ namespace Pytocs.Core.Syntax
         T VisitAliasedExp(AliasedExp aliasedExp, C context);
         T VisitApplication(Application appl, C context);
         T VisitArrayRef(ArrayRef arrayRef, C context);
+        T VisitLocalVarsExp(LocalVarsExp localVarsExp, C context);
         T VisitAssignExp(AssignExp assignExp, C context);
-        T VisitAssignmentExp(AssignmentExp assignmentExp, C context);
+        // T VisitAssignmentExp(AssignmentExp assignmentExp, C context);
         T VisitAwait(AwaitExp awaitExp, C context);
         T VisitBigLiteral(BigLiteral bigLiteral, C context);
         T VisitBinExp(BinExp bin, C context);

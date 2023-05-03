@@ -41,26 +41,27 @@ namespace Pytocs.Core.Syntax
     }
     }
 
-    public class AsyncStatement : Statement
-    {
-        public AsyncStatement(Statement stmt, string filename, int start, int end)
-            : base(filename, start, end)
-        {
-            this.Statement = stmt;
-        }
-
-        public Statement Statement { get; }
-
-        public override T Accept<T>(IStatementVisitor<T> v)
-        {
-            return v.VisitAsync(this);
-        }
-
-        public override void Accept(IStatementVisitor v)
-        {
-            v.VisitAsync(this);
-        }
-    }
+    // TODO 删除AsyncStatement
+    // public class AsyncStatement : Statement
+    // {
+    //     public AsyncStatement(Statement stmt, string filename, int start, int end)
+    //         : base(filename, start, end)
+    //     {
+    //         this.Statement = stmt;
+    //     }
+    //
+    //     public Statement Statement { get; }
+    //
+    //     public override T Accept<T>(IStatementVisitor<T> v)
+    //     {
+    //         return v.VisitAsync(this);
+    //     }
+    //
+    //     public override void Accept(IStatementVisitor v)
+    //     {
+    //         v.VisitAsync(this);
+    //     }
+    // }
 
     public class AssertStatement : Statement
     {
@@ -181,8 +182,20 @@ namespace Pytocs.Core.Syntax
             this.Expression = e;
         }
 
+        // public ExpStatement(ExpStatement e, int start, bool isLocal)
+        //     : base(e.Filename, start, e.End)
+        // {
+        //     Expression = e.Expression;
+        //     IsLocal = isLocal;
+        //     LhsNames = e.LhsNames;
+        // }
+
         public Exp Expression { get; }
         
+        // public bool IsLocal { get; }
+        
+        // public List<Identifier>? LhsNames { get; }
+
         public override void Accept(IStatementVisitor v)
         {
             v.VisitExp(this);
@@ -216,6 +229,8 @@ namespace Pytocs.Core.Syntax
         public Exp Tests { get; }     // iterator
         public SuiteStatement Body { get; }
         public SuiteStatement? Else { get; }
+        
+        public bool IsNumeric { get; set; }     // true means: for v = e1, e2, e3 do ...
 
         public override void Accept(IStatementVisitor v)
         {
@@ -228,33 +243,33 @@ namespace Pytocs.Core.Syntax
         }
     }
 
-    public class FromStatement : Statement
-    {
-        public FromStatement(DottedName? name, List<AliasedName> aliasedNames, string filename, int pos, int end)
-            : base(filename, pos, end)
-        {
-            this.DottedName = name;
-            this.AliasedNames = aliasedNames ?? throw new ArgumentNullException(nameof(aliasedNames));
-        }
-
-        public DottedName? DottedName { get; }
-        public List<AliasedName> AliasedNames { get; }
-
-        public override void Accept(IStatementVisitor v)
-        {
-            v.VisitFrom(this);
-        }
-
-        public override T Accept<T>(IStatementVisitor<T> v)
-        {
-            return v.VisitFrom(this);
-        }
-
-        internal bool IsImportStar()
-        {
-            return AliasedNames.Count == 0;
-        }
-    }
+    // public class FromStatement : Statement
+    // {
+    //     public FromStatement(DottedName? name, List<AliasedName> aliasedNames, string filename, int pos, int end)
+    //         : base(filename, pos, end)
+    //     {
+    //         this.DottedName = name;
+    //         this.AliasedNames = aliasedNames ?? throw new ArgumentNullException(nameof(aliasedNames));
+    //     }
+    //
+    //     public DottedName? DottedName { get; }
+    //     public List<AliasedName> AliasedNames { get; }
+    //
+    //     public override void Accept(IStatementVisitor v)
+    //     {
+    //         v.VisitFrom(this);
+    //     }
+    //
+    //     public override T Accept<T>(IStatementVisitor<T> v)
+    //     {
+    //         return v.VisitFrom(this);
+    //     }
+    //
+    //     internal bool IsImportStar()
+    //     {
+    //         return AliasedNames.Count == 0;
+    //     }
+    // }
 
     public class GlobalStatement : Statement
     {
@@ -385,6 +400,7 @@ namespace Pytocs.Core.Syntax
         }
     }
 
+    // TODO 删除PrintStatement
     public class PrintStatement : Statement
     {
         public PrintStatement(Exp? outputStream, List<Argument> args, bool trailingComma, string filename, int pos, int end)
@@ -410,26 +426,26 @@ namespace Pytocs.Core.Syntax
         }
     }
 
-    public class ImportStatement : Statement
-    {
-        public ImportStatement(List<AliasedName> names, string filename, int pos, int end)
-            : base(filename, pos, end)
-        {
-            this.Names = names;
-        }
-
-        public List<AliasedName> Names { get; }
-
-        public override void Accept(IStatementVisitor v)
-        {
-            v.VisitImport(this);
-        }
-
-        public override T Accept<T>(IStatementVisitor<T> v)
-        {
-            return v.VisitImport(this);
-        }
-    }
+    // public class ImportStatement : Statement
+    // {
+    //     public ImportStatement(List<AliasedName> names, string filename, int pos, int end)
+    //         : base(filename, pos, end)
+    //     {
+    //         this.Names = names;
+    //     }
+    //
+    //     public List<AliasedName> Names { get; }
+    //
+    //     public override void Accept(IStatementVisitor v)
+    //     {
+    //         v.VisitImport(this);
+    //     }
+    //
+    //     public override T Accept<T>(IStatementVisitor<T> v)
+    //     {
+    //         return v.VisitImport(this);
+    //     }
+    // }
 
     public class NonlocalStatement : Statement
     {

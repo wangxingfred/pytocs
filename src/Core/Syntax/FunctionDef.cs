@@ -24,28 +24,37 @@ namespace Pytocs.Core.Syntax
 {
     public class FunctionDef : Statement
     {
+        public readonly Identifier? cls;    // 所属类/模块
         public readonly Identifier name;
         public readonly List<Parameter> parameters;
         public readonly SuiteStatement body;
         public bool called = false;         //$ move to big state
         public readonly Identifier? vararg;
         public readonly Identifier? kwarg;
+        public readonly bool isLocal;
+        public readonly bool isInstanceMethod;
 
         public FunctionDef(
             Identifier name, 
+            Identifier? cls,
             List<Parameter> parameters,
             Identifier? vararg,
             Identifier? kwarg,
             Exp? annotation,
-            SuiteStatement body, string filename, int start, int end) 
+            SuiteStatement body,
+            bool isLocal, bool isInstanceMethod,
+            string filename, int start, int end) 
             : base(filename, start, end) 
         {
             this.name = name;
+            this.cls = cls;
             this.parameters = parameters;
             this.vararg = vararg;
             this.kwarg = kwarg;
             this.Annotation = annotation;
             this.body = body;
+            this.isLocal = isLocal;
+            this.isInstanceMethod = isInstanceMethod;
         }
 
         public Exp? Annotation { get; }
@@ -62,33 +71,41 @@ namespace Pytocs.Core.Syntax
 
         public bool IsStaticMethod()
         {
-            if (Decorators == null)
-                return false;
-            foreach (var d in Decorators)
-            {
-                if (d.className.segs.Last().Name == "staticmethod")
-                {
-                    return true;
-                }
-            }
-            return false;
+            return !isLocal && !isInstanceMethod;
+            // if (Decorators == null)
+            //     return false;
+            // foreach (var d in Decorators)
+            // {
+            //     if (d.className.segs.Last().Name == "staticmethod")
+            //     {
+            //         return true;
+            //     }
+            // }
+            // return false;
         }
 
-        public bool IsClassMethod()
+        // Constructor
+        // public bool IsClassMethod()
+        // {
+        //     if (Decorators == null)
+        //         return false;
+        //     foreach (var d in Decorators)
+        //     {
+        //         if (d.className.segs.Last().Name == "classmethod")
+        //         {
+        //             return true;
+        //         }
+        //     }
+        //     return false;
+        // }
+
+        public bool IsConstructor()
         {
-            if (Decorators == null)
-                return false;
-            foreach (var d in Decorators)
-            {
-                if (d.className.segs.Last().Name == "classmethod")
-                {
-                    return true;
-                }
-            }
-            return false;
+            return isInstanceMethod && name.Name == "_Ctor";
         }
     }
 
+    // TODO 删除Lambda
     public class Lambda : Exp
     {
         public readonly List<VarArg> args;

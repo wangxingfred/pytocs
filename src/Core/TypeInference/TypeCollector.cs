@@ -36,11 +36,11 @@ namespace Pytocs.Core.TypeInference
             return DataType.Unknown;
         }
 
-        public DataType VisitAsync(AsyncStatement a)
-        {
-            var dt = VisitFunctionDef((FunctionDef)a.Statement, true);
-            return dt;
-        }
+        // public DataType VisitAsync(AsyncStatement a)
+        // {
+        //     var dt = VisitFunctionDef((FunctionDef)a.Statement, true);
+        //     return dt;
+        // }
 
         public DataType VisitAssert(AssertStatement a)
         {
@@ -55,45 +55,139 @@ namespace Pytocs.Core.TypeInference
             }
             return DataType.Unit;
         }
+        
+        public DataType VisitLocalVarsExp(LocalVarsExp localVarsExp)
+        {
+            var index = 0;
+            var initializers = localVarsExp.Initializers;
+            foreach (var id in localVarsExp.Variables)
+            {
+                scope.AddLocalName(id.Name);
+
+                if (index < initializers.Count)
+                {
+                    var valueType = initializers[index].Accept(this);
+                    scope.BindByScope(analyzer, id, valueType);
+                }
+                else
+                {
+                    scope.BindByScope(analyzer, id, DataType.Unknown);
+                }
+
+                ++index;
+            }
+            
+            return DataType.Unit;
+        }
+
+        /// <summary>
+        /// 判断id是否等于其文件名前缀
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        private bool MatchFilename(Identifier id)
+        {
+            var filename = id.Filename;
+            var length = filename.Length;
+            
+            var index = filename.LastIndexOf('\\');
+            index = index < 0 ? 0 : index + 1;
+            
+            foreach (var c in id.Name)
+            {
+                if (index >= length) return false;
+                if (c != filename[index]) return false;
+
+                ++index;
+            }
+            
+            return index < length && filename[index] == '.';
+        }
+        
+        private void BindGlobalClass(Identifier id)
+        {
+            var classType = new ClassType(id.Name, scope, id.Name);
+            
+            // var moduleType = scope.DataType as ModuleType;
+            // moduleType!.Class = classType;
+            
+            scope.AddGlobalBinding(analyzer, id.Name, id, classType, BindingKind.CLASS);
+        }
 
         public DataType VisitAssignExp(AssignExp a)
         {
+            // if (a.Dst is Identifier dst)
+            // {
+            //     var bs = scope.LookupBindingsOf(dst.Name);
+            //     if (bs == null)
+            //     {
+            //         // TODO 是否需要找到最外层的scope？
+            //         scope.AddGlobalName(dst.Name);
+            //     }
+            // }
+            
+            var valueType = a.Src.Accept(this);
+
+            if (scope.stateType == NameScopeType.MODULE
+                && a.Dst is Identifier id1 
+                && !scope.IsLocalName(id1.Name))
+            {
+                // 模块内的全局变量，很有可能是全局类对象
+                // 例如：Boot = {}
+                
+                if (valueType != DataType.Str 
+                    && valueType != DataType.Bool 
+                    && valueType != DataType.Int 
+                    && valueType != DataType.Float)
+                {
+                    BindGlobalClass(id1);
+                    return DataType.Unit;
+                }
+                
+                // 例如：TestMgr.field = 1
+                // if (a.Dst is AttributeAccess attr && attr.Expression is Identifier id2
+                //                                   && !scope.IsLocalName(id2.Name)
+                //                                   && MatchFilename(id2))
+                // {
+                //     var valueType = a.Src!.Accept(this);
+                //     scope.Bind(analyzer, attr, valueType, BindingKind.ATTRIBUTE);
+                //     return DataType.Unit;
+                // }
+            }
+            
             if (scope.stateType == NameScopeType.CLASS &&
                 a.Dst is Identifier id)
             {
-                if (id.Name == "__slots__")
+                /*if (id.Name == "__slots__")
                 {
                     // The __slots__ attribute needs to be handled specially:
                     // it actually introduces new attributes.
                     BindClassSlots(a.Src!);
                 }
-                else if (a.Annotation != null)
+                else*/ if (a.Annotation != null)
                 {
                     //$TODO: do something with the type info.
                     //var dt = scope.LookupType(a.Annotation.ToString());
                     //scope.Bind(analyzer, id, dt ?? DataType.Unknown, BindingKind.ATTRIBUTE);
                     if (a.Src != null)
                     {
-                        DataType valueType = a.Src!.Accept(this);
+                        // DataType valueType = a.Src!.Accept(this);
                         scope.BindByScope(analyzer, a.Dst, valueType);
                     }
                 }
             }
             else
             {
-                if (a.Src != null)
-                {
-                    DataType valueType = a.Src!.Accept(this);
-                    scope.BindByScope(analyzer, a.Dst, valueType);
-                }
+                // var valueType = a.Src!.Accept(this);
+                scope.BindByScope(analyzer, a.Dst, valueType);
             }
             return DataType.Unit;
         }
 
-        public DataType VisitAssignmentExp(AssignmentExp e)
-        {
-            return e.Src.Accept(this);
-        }
+        // public DataType VisitAssignmentExp(AssignmentExp e)
+        // {
+        //     return e.Src.Accept(this);
+        // }
 
         private void BindClassSlots(Exp eSlotNames)
         {
@@ -134,11 +228,11 @@ namespace Pytocs.Core.TypeInference
         public DataType VisitFieldAccess(AttributeAccess a)
         {
             // the form of ::A in ruby
-            if (a.Expression == null)
-            {
-                return a.FieldName.Accept(this);
-            }
-
+            // if (a.Expression == null)
+            // {
+            //     return a.FieldName.Accept(this);
+            // }
+            
             var targetType = a.Expression.Accept(this);
             if (targetType is UnionType ut)
             {
@@ -190,16 +284,16 @@ namespace Pytocs.Core.TypeInference
         public DataType VisitSuite(SuiteStatement b)
         {
             // first pass: mark global names
-            IEnumerable<Identifier> globalNames = GetGlobalNanesInSuite(b);
-            foreach (var id in globalNames)
-            {
-                scope.AddGlobalName(id.Name);
-                ISet<Binding>? nb = scope.LookupBindingsOf(id.Name);
-                if (nb is not null)
-                {
-                    analyzer.AddReference(id, nb);
-                }
-            }
+            // IEnumerable<Identifier> globalNames = GetGlobalNanesInSuite(b);
+            // foreach (var id in globalNames)
+            // {
+            //     scope.AddGlobalName(id.Name);
+            //     ISet<Binding>? nb = scope.LookupBindingsOf(id.Name);
+            //     if (nb is not null)
+            //     {
+            //         analyzer.AddReference(id, nb);
+            //     }
+            // }
 
             bool returned = false;
             DataType retType = DataType.Unknown;
@@ -222,12 +316,13 @@ namespace Pytocs.Core.TypeInference
         private static IEnumerable<Identifier> GetGlobalNanesInSuite(SuiteStatement b)
         {
             return b.Statements
-                .OfType<GlobalStatement>()
-                .SelectMany(g => g.Names)
-                .Concat(b.Statements
-                    .OfType<NonlocalStatement>()
-                    .SelectMany(g => g.Names));
+            .OfType<GlobalStatement>()
+            .SelectMany(g => g.Names)
+            .Concat(b.Statements
+            .OfType<NonlocalStatement>()
+            .SelectMany(g => g.Names));
         }
+
 
         public DataType VisitBreak(BreakStatement b)
         {
@@ -249,7 +344,7 @@ namespace Pytocs.Core.TypeInference
             var fun = c.Function.Accept(this);
             var dtPos = c.Args.Select(a => a.DefaultValue!.Accept(this)).ToList();
             var hash = new Dictionary<string, DataType>();
-            if (c.Keywords != null)
+            if (c.Keywords != null && c.Keywords.Count > 0)
             {
                 foreach (var k in c.Keywords)
                 {
@@ -367,7 +462,7 @@ namespace Pytocs.Core.TypeInference
             BindMethodAttrs(analyzer, func);
 
             var funcTable = new NameScope(func.scope, NameScopeType.FUNCTION);
-            if (func.Scope.Parent != null)
+            if (func.Scope.Parent != null && func.Definition.isLocal)
             {
                 funcTable.Path = func.Scope.Parent.ExtendPath(analyzer, func.Definition.name.Name);
             }
@@ -414,46 +509,44 @@ namespace Pytocs.Core.TypeInference
             }
         }
 
-        public static DataType? FirstArgumentType(FunctionDef f, FunType func, DataType? selfType)
-        {
-            if (f.parameters.Count == 0)
-                return null;
-            if (!func.Definition!.IsStaticMethod())
-            {
-                if (func.Definition!.IsClassMethod())
-                {
-                    // Constructor
-                    if (func.Class != null)
-                    {
-                        return func.Class;
-                    }
-                    else if (selfType != null && selfType is InstanceType inst)
-                    {
-                        return inst.classType;
-                    }
-                }
-                else
-                {
-                    // usual method
-                    if (selfType != null)
-                    {
-                        return selfType;
-                    }
-                    else if (func.Class != null)
-                    {
-                        if (func.Definition.name.Name != "__init__")
-                        {
-                            throw new NotImplementedException("return func.Class.getInstance(null, this, call));");
-                        }
-                        else
-                        {
-                            return func.Class.GetInstance();
-                        }
-                    }
-                }
-            }
-            return null;
-        }
+        // public static DataType? FirstArgumentType(FunctionDef f, FunType func, DataType? selfType)
+        // {
+        //     if (f.parameters.Count == 0) return null;
+        //     if (func.Definition!.IsStaticMethod()) return null;
+        //     
+        //     if (func.Definition!.IsClassMethod())
+        //     {
+        //         // Constructor
+        //         if (func.Class != null)
+        //         {
+        //             return func.Class;
+        //         }
+        //         else if (selfType != null && selfType is InstanceType inst)
+        //         {
+        //             return inst.classType;
+        //         }
+        //     }
+        //     else
+        //     {
+        //         // usual method
+        //         if (selfType != null)
+        //         {
+        //             return selfType;
+        //         }
+        //         else if (func.Class != null)
+        //         {
+        //             if (func.Definition.name.Name != "__init__")
+        //             {
+        //                 throw new NotImplementedException("return func.Class.getInstance(null, this, call));");
+        //             }
+        //             else
+        //             {
+        //                 return func.Class.GetInstance();
+        //             }
+        //         }
+        //     }
+        //     return null;
+        // }
 
         /// <summary>
         /// Binds the parameters of a call to the called function.
@@ -539,7 +632,9 @@ namespace Pytocs.Core.TypeInference
                         }
                     }
                 }
-                funcTable.Bind(analyzer, param.Id!, aType, BindingKind.PARAMETER);
+                // funcTable.Bind(analyzer, param.Id!, aType, BindingKind.PARAMETER);
+                // TODO 这里严格来讲还应该AddLocalName，目前是修改了NameScope.IsLocalName的实现，否则LookupBindingsOf(param)会失败
+                funcTable.EnsureParamBinding(analyzer, param.Id!.Name, param.Id!, aType, BindingKind.PARAMETER);
                 fromTypes.Add(aType);
             }
             TupleType fromType = analyzer.TypeFactory.CreateTuple(fromTypes.ToArray());
@@ -627,7 +722,7 @@ namespace Pytocs.Core.TypeInference
             BindingKind kind)
         {
             Node loc = Builtins.newDataModelUrl("the-standard-type-hierarchy");
-            Binding b = analyzer.CreateBinding(name, loc, type, kind);
+            var b = analyzer.CreateBinding(name, loc, type, kind);
             fun.Scope.SetIdentifierBinding(name, b);
             b.IsSynthetic = true;
             b.IsStatic = true;
@@ -635,7 +730,7 @@ namespace Pytocs.Core.TypeInference
 
         public void AddSpecialAttribute(NameScope s, string name, DataType proptype)
         {
-            Binding b = analyzer.CreateBinding(name, Builtins.newTutUrl("classes.html"), proptype, BindingKind.ATTRIBUTE);
+            var b = analyzer.CreateBinding(name, Builtins.newTutUrl("classes.html"), proptype, BindingKind.ATTRIBUTE);
             s.SetIdentifierBinding(name, b);
             b.IsSynthetic = true;
             b.IsStatic = true;
@@ -854,56 +949,105 @@ namespace Pytocs.Core.TypeInference
 
         public DataType VisitFunctionDef(FunctionDef f, bool isAsync)
         {
-            NameScope? env = scope.Forwarding;
-            FunType fun = new FunType(f, env);
-            fun.Scope.Parent = this.scope;
-            fun.Scope.Path = scope.ExtendPath(analyzer, f.name.Name);
+            if (f.isLocal)
+            {
+                scope.AddLocalName(f.name.Name);    
+            }
+            
+            var env = scope.Forwarding;
+            var fun = new FunType(f, env)
+            {
+                Scope =
+                {
+                    Parent = scope,
+                    Path = f.isLocal ? scope.ExtendPath(analyzer, f.name.Name) : f.name.Name
+                }
+            };
             fun.SetDefaultTypes(ResolveList(f.parameters
                 .Where(p => p.Test != null)
                 .Select(p => p.Test!))!);
-            if (isAsync)
-            {
-                fun = fun.MakeAwaitable();
-            }
+            
+            // if (isAsync)
+            // {
+            //     fun = fun.MakeAwaitable();
+            // }
+            
             analyzer.AddUncalled(fun);
 
-            BindingKind funkind = DetermineFunctionKind(f);
-
-            var ct = scope.DataType as ClassType;
-            if (ct != null)
+            if (f.cls != null)
             {
-                fun.Class = ct;
+                var bs = scope.LookupBindingsOf(f.cls.Name);
+                if (bs != null)
+                {
+                    foreach (var b in bs)
+                    {
+                        if (b.Type is not ClassType ct) continue;
+                        fun.Class = ct;
+                        break;
+                    }
+                }
+
+                if (fun.Class != null)
+                {
+                    var kind = f.IsConstructor() ? BindingKind.CONSTRUCTOR : BindingKind.METHOD;
+                    fun.Class.Scope.AddLocalName(f.name.Name);
+                    fun.Class.Scope.AddLocalBinding(analyzer, f.name.Name, f.name, fun, kind);
+                    
+                    // todo 绑定self
+                }
             }
-
-            scope.Bind(analyzer, f.name, fun, funkind);
-            var firstArgType = FirstArgumentType(f, fun, ct);
-            if (firstArgType != null)
+            else
             {
-                fun.Scope.Bind(analyzer, f.parameters[0].Id!, firstArgType, BindingKind.PARAMETER);
+                scope.Bind(analyzer, f.name, fun, BindingKind.FUNCTION);
+            }
+            
+            // var ct = scope.DataType as ClassType;
+            // if (ct != null)
+            // {
+            //     fun.Class = ct;
+            // }
+            // BindingKind funkind = DetermineFunctionKind(f);
+            // scope.Bind(analyzer, f.name, fun, funkind);
+            // var firstArgType = FirstArgumentType(f, fun, ct);
+            // if (firstArgType != null)
+            // {
+            //     fun.Scope.Bind(analyzer, f.parameters[0].Id!, firstArgType, BindingKind.PARAMETER); // TODO 其他参数的绑定
+            // }
+            // else
+            {
+                foreach (var parameter in f.parameters)
+                {
+                    var id = parameter.Id;
+                    if (id != null)
+                    {
+                        fun.Scope.AddLocalName(id.Name);
+                        fun.Scope.AddLocalBinding(analyzer, id.Name, id, DataType.Unknown, BindingKind.PARAMETER);
+                    }
+                }
             }
 
             f.body.Accept(new TypeCollector(fun.Scope, this.analyzer));
             return DataType.Unit;
         }
 
-        private BindingKind DetermineFunctionKind(FunctionDef f)
-        {
-            if (scope.stateType == NameScopeType.CLASS)
-            {
-                if ("__init__" == f.name.Name)
-                {
-                    return BindingKind.CONSTRUCTOR;
-                }
-                else
-                {
-                    return BindingKind.METHOD;
-                }
-            }
-            else
-            {
-                return BindingKind.FUNCTION;
-            }
-        }
+        // private BindingKind DetermineFunctionKind(FunctionDef f)
+        // {
+        //     if (scope.stateType == NameScopeType.CLASS)
+        //     {
+        //         if ("__init__" == f.name.Name)
+        //         {
+        //             return BindingKind.CONSTRUCTOR;
+        //         }
+        //         else
+        //         {
+        //             return BindingKind.METHOD;
+        //         }
+        //     }
+        //     else
+        //     {
+        //         return BindingKind.FUNCTION;
+        //     }
+        // }
 
         public DataType VisitGlobal(GlobalStatement g)
         {
@@ -1009,143 +1153,143 @@ namespace Pytocs.Core.TypeInference
             return UnionType.Union(type1, type2);
         }
 
-        public DataType VisitImport(ImportStatement i)
-        {
-            foreach (var a in i.Names)
-            {
-                DataType? mod = analyzer.LoadModule(a.Orig.segs, scope);
-                if (mod is null)
-                {
-                    analyzer.AddProblem(i, $"Cannot load module {string.Join(".", a.Orig.segs)}.");
-                }
-                else if (a.Alias != null)
-                {
-                    scope.AddExpressionBinding(analyzer, a.Alias.Name, a.Alias, mod, BindingKind.VARIABLE);
-                }
-            }
-            return DataType.Unit;
-        }
+        // public DataType VisitImport(ImportStatement i)
+        // {
+        //     foreach (var a in i.Names)
+        //     {
+        //         DataType? mod = analyzer.LoadModule(a.Orig.segs, scope);
+        //         if (mod is null)
+        //         {
+        //             analyzer.AddProblem(i, $"Cannot load module {string.Join(".", a.Orig.segs)}.");
+        //         }
+        //         else if (a.Alias != null)
+        //         {
+        //             scope.AddExpressionBinding(analyzer, a.Alias.Name, a.Alias, mod, BindingKind.VARIABLE);
+        //         }
+        //     }
+        //     return DataType.Unit;
+        // }
 
-        public DataType VisitFrom(FromStatement i)
-        {
-            if (i.DottedName == null)
-            {
-                return DataType.Unit;
-            }
-
-            var dtModule = analyzer.LoadModule(i.DottedName.segs, scope);
-            if (dtModule == null)
-            {
-                analyzer.AddProblem(i, "Cannot load module");
-            }
-            else if (i.IsImportStar())
-            {
-                ImportStar(i, dtModule);
-            }
-            else
-            {
-                foreach (var a in i.AliasedNames)
-                {
-                    Identifier idFirst = a.Orig.segs[0];
-                    var bs = dtModule.Scope.LookupBindingsOf(idFirst.Name);
-                    if (bs != null)
-                    {
-                        if (a.Alias != null)
-                        {
-                            scope.SetIdentifierBindings(a.Alias.Name, bs);
-                            analyzer.AddReference(a.Alias, bs);
-                        }
-                        else
-                        {
-                            scope.SetIdentifierBindings(idFirst.Name, bs);
-                            analyzer.AddReference(idFirst, bs);
-                        }
-                    }
-                    else
-                    {
-                        var ext = new List<Identifier>(i.DottedName.segs)
-                        {
-                            idFirst
-                        };
-                        DataType? mod2 = analyzer.LoadModule(ext, scope);
-                        if (mod2 != null)
-                        {
-                            if (a.Alias != null)
-                            {
-                                scope.AddExpressionBinding(analyzer, a.Alias.Name, a.Alias, mod2, BindingKind.VARIABLE);
-                            }
-                            else
-                            {
-                                scope.AddExpressionBinding(analyzer, idFirst.Name, idFirst, mod2, BindingKind.VARIABLE);
-                            }
-                        }
-                    }
-                }
-            }
-            return DataType.Unit;
-        }
+        // public DataType VisitFrom(FromStatement i)
+        // {
+        //     if (i.DottedName == null)
+        //     {
+        //         return DataType.Unit;
+        //     }
+        //
+        //     var dtModule = analyzer.LoadModule(i.DottedName.segs, scope);
+        //     if (dtModule == null)
+        //     {
+        //         analyzer.AddProblem(i, "Cannot load module");
+        //     }
+        //     else if (i.IsImportStar())
+        //     {
+        //         ImportStar(i, dtModule);
+        //     }
+        //     else
+        //     {
+        //         foreach (var a in i.AliasedNames)
+        //         {
+        //             Identifier idFirst = a.Orig.segs[0];
+        //             var bs = dtModule.Scope.LookupBindingsOf(idFirst.Name);
+        //             if (bs != null)
+        //             {
+        //                 if (a.Alias != null)
+        //                 {
+        //                     scope.SetIdentifierBindings(a.Alias.Name, bs);
+        //                     analyzer.AddReference(a.Alias, bs);
+        //                 }
+        //                 else
+        //                 {
+        //                     scope.SetIdentifierBindings(idFirst.Name, bs);
+        //                     analyzer.AddReference(idFirst, bs);
+        //                 }
+        //             }
+        //             else
+        //             {
+        //                 var ext = new List<Identifier>(i.DottedName.segs)
+        //                 {
+        //                     idFirst
+        //                 };
+        //                 DataType? mod2 = analyzer.LoadModule(ext, scope);
+        //                 if (mod2 != null)
+        //                 {
+        //                     if (a.Alias != null)
+        //                     {
+        //                         scope.AddExpressionBinding(analyzer, a.Alias.Name, a.Alias, mod2, BindingKind.VARIABLE);
+        //                     }
+        //                     else
+        //                     {
+        //                         scope.AddExpressionBinding(analyzer, idFirst.Name, idFirst, mod2, BindingKind.VARIABLE);
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     return DataType.Unit;
+        // }
 
         /// <summary>
         /// Import all names from a module.
         /// </summary>
         /// <param name="i">Import statement</param>
         /// <param name="mt">Module being imported</param>
-        private void ImportStar(FromStatement i, DataType? mt)
-        {
-            if (mt is null || mt.file == null)
-            {
-                return;
-            }
-
-            Module? node = analyzer.GetAstForFile(mt.file);
-            if (node == null)
-            {
-                return;
-            }
-
-            DataType? allType = mt.Scope.LookupTypeOf("__all__");
-            List<string> names = new List<string>();
-            if (allType is ListType lt)
-            {
-                foreach (var s in lt.values.OfType<string>()) 
-                {
-                    names.Add(s);
-                }
-            }
-
-            if (names.Count > 0)
-            {
-                int start = i.Start;
-                foreach (string name in names)
-                {
-                    ISet<Binding>? b = mt.Scope.LookupLocal(name);
-                    if (b != null)
-                    {
-                        scope.SetIdentifierBindings(name, b);
-                    }
-                    else
-                    {
-                        var m2 = new List<Identifier>(i.DottedName!.segs);
-                        var fakeName = new Identifier(name, i.Filename, start, start + name.Length);
-                        m2.Add(fakeName);
-                        DataType? type = analyzer.LoadModule(m2, scope);
-                        if (type is not null)
-                        {
-                            start += name.Length;
-                            scope.AddExpressionBinding(analyzer, name, fakeName, type, BindingKind.VARIABLE);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // Fall back to importing all names not starting with "_".
-                foreach (var e in mt.Scope.Entries.Where(en => !en.Key.StartsWith("_")))
-                {
-                    scope.SetIdentifierBindings(e.Key, e.Value);
-                }
-            }
-        }
+        // private void ImportStar(FromStatement i, DataType? mt)
+        // {
+        //     if (mt is null || mt.file == null)
+        //     {
+        //         return;
+        //     }
+        //
+        //     Module? node = analyzer.GetAstForFile(mt.file);
+        //     if (node == null)
+        //     {
+        //         return;
+        //     }
+        //
+        //     DataType? allType = mt.Scope.LookupTypeOf("__all__");
+        //     List<string> names = new List<string>();
+        //     if (allType is ListType lt)
+        //     {
+        //         foreach (var s in lt.values.OfType<string>()) 
+        //         {
+        //             names.Add(s);
+        //         }
+        //     }
+        //
+        //     if (names.Count > 0)
+        //     {
+        //         int start = i.Start;
+        //         foreach (string name in names)
+        //         {
+        //             ISet<Binding>? b = mt.Scope.LookupLocal(name);
+        //             if (b != null)
+        //             {
+        //                 scope.SetIdentifierBindings(name, b);
+        //             }
+        //             else
+        //             {
+        //                 var m2 = new List<Identifier>(i.DottedName!.segs);
+        //                 var fakeName = new Identifier(name, i.Filename, start, start + name.Length);
+        //                 m2.Add(fakeName);
+        //                 DataType? type = analyzer.LoadModule(m2, scope);
+        //                 if (type is not null)
+        //                 {
+        //                     start += name.Length;
+        //                     scope.AddExpressionBinding(analyzer, name, fakeName, type, BindingKind.VARIABLE);
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     else
+        //     {
+        //         // Fall back to importing all names not starting with "_".
+        //         foreach (var e in mt.Scope.Entries.Where(en => !en.Key.StartsWith("_")))
+        //         {
+        //             scope.SetIdentifierBindings(e.Key, e.Value);
+        //         }
+        //     }
+        // }
 
         public DataType? VisitArgument(Argument arg)
         {
@@ -1239,7 +1383,7 @@ namespace Pytocs.Core.TypeInference
                 analyzer.Unresolved.Remove(id);
                 return NameScope.MakeUnion(b);
             }
-            else if (id.Name == "True" || id.Name == "False")
+            else if (id.Name == "true" || id.Name == "false")
             {
                 return DataType.Bool;
             }

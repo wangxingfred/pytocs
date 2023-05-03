@@ -39,12 +39,12 @@ namespace Pytocs.Core.Syntax
             throw new NotImplementedException();
         }
 
-        public void VisitAsync(AsyncStatement a)
-        {
-            w.Write("async");
-            w.Write(" ");
-            a.Statement.Accept(this);
-        }
+        // public void VisitAsync(AsyncStatement a)
+        // {
+        //     w.Write("async");
+        //     w.Write(" ");
+        //     a.Statement.Accept(this);
+        // }
 
         public void VisitBreak(BreakStatement b)
         {
@@ -115,55 +115,74 @@ namespace Pytocs.Core.Syntax
 
         public void VisitFor(ForStatement f)
         {
-            w.Write("for");
-            w.Write(" ");
-            f.Exprs.Write(writer);
-            w.Write(" ");
-            w.Write("in");
-            w.Write(" ");
-            f.Tests.Write(writer);
-            w.WriteLine(":");
-            ++w.IndentLevel;
-            f.Body.Accept(this);
-            --w.IndentLevel;
+            if (f.IsNumeric)
+            {
+                w.Write("for");
+                w.Write(" ");
+                f.Exprs.Write(writer);
+                w.Write(" ");
+                w.Write("in");
+                w.Write(" ");
+                w.Write("range(");
+                f.Tests.Write(writer);
+                w.Write(")");
+                w.WriteLine(":");
+                ++w.IndentLevel;
+                f.Body.Accept(this);
+                --w.IndentLevel;
+            }
+            else
+            {
+                w.Write("for");
+                w.Write(" ");
+                f.Exprs.Write(writer);
+                w.Write(" ");
+                w.Write("in");
+                w.Write(" ");
+                f.Tests.Write(writer);
+                w.WriteLine(":");
+                ++w.IndentLevel;
+                f.Body.Accept(this);
+                --w.IndentLevel;
+            }
         }
 
-        public void VisitFrom(FromStatement f)
-        {
-            w.Write("from");
-            w.Write(" ");
-            if (f.DottedName != null)
-            {
-            w.Write(f.DottedName.ToString());
-            w.Write(" ");
-            }
-            w.Write("import");
-            if (f.AliasedNames != null && f.AliasedNames.Count > 0)
-            {
-                w.Write(" (");
-                var listSep = "";
-                foreach (var aliasedName in f.AliasedNames)
-                {
-                    w.Write(listSep);
-                    listSep = ", ";
-                    var segSep = "";
-                    foreach (var seg in aliasedName.Orig.segs)
-                    {
-                        w.Write(segSep);
-                        segSep = ".";
-                        w.Write(seg.Name);
-                    }
-                    if (aliasedName.Alias != null)
-                    {
-                        w.Write(" ");
-                        w.Write("as");
-                        w.Write(" ");
-                        w.Write(aliasedName.Alias.Name);
-                    }
-                }
-                w.Write(")");
-            }
-        }
+        // public void VisitFrom(FromStatement f)
+        // {
+        //     w.Write("from");
+        //     w.Write(" ");
+        //     if (f.DottedName != null)
+        //     {
+        //     w.Write(f.DottedName.ToString());
+        //     w.Write(" ");
+        //     }
+        //     w.Write("import");
+        //     if (f.AliasedNames != null && f.AliasedNames.Count > 0)
+        //     {
+        //         w.Write(" (");
+        //         var listSep = "";
+        //         foreach (var aliasedName in f.AliasedNames)
+        //         {
+        //             w.Write(listSep);
+        //             listSep = ", ";
+        //             var segSep = "";
+        //             foreach (var seg in aliasedName.Orig.segs)
+        //             {
+        //                 w.Write(segSep);
+        //                 segSep = ".";
+        //                 w.Write(seg.Name);
+        //             }
+        //             if (aliasedName.Alias != null)
+        //             {
+        //                 w.Write(" ");
+        //                 w.Write("as");
+        //                 w.Write(" ");
+        //                 w.Write(aliasedName.Alias.Name);
+        //             }
+        //         }
+        //         w.Write(")");
+        //     }
+        // }
 
         public void VisitFuncdef(FunctionDef f)
         {
@@ -243,10 +262,10 @@ namespace Pytocs.Core.Syntax
             return s.Statements[0] as IfStatement;
         }
 
-        public void VisitImport(ImportStatement i)
-        {
-            throw new NotImplementedException();
-        }
+        // public void VisitImport(ImportStatement i)
+        // {
+        //     throw new NotImplementedException();
+        // }
 
         public void VisitNonLocal(NonlocalStatement n)
         {

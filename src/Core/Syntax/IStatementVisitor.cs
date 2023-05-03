@@ -23,7 +23,7 @@ namespace Pytocs.Core.Syntax
 {
     public interface IStatementVisitor
     {
-        void VisitAsync(AsyncStatement a);
+        // void VisitAsync(AsyncStatement a);
         void VisitAssert(AssertStatement a);
         void VisitBreak(BreakStatement b);
         void VisitClass(ClassDef c);
@@ -33,11 +33,11 @@ namespace Pytocs.Core.Syntax
         void VisitExec(ExecStatement exec);
         void VisitExp(ExpStatement e); 
         void VisitFor(ForStatement f);
-        void VisitFrom(FromStatement f);
+        // void VisitFrom(FromStatement f);
         void VisitFuncdef(FunctionDef f);
         void VisitGlobal(GlobalStatement g);
         void VisitIf(IfStatement i);
-        void VisitImport(ImportStatement i);
+        // void VisitImport(ImportStatement i);
         void VisitNonLocal(NonlocalStatement n);
         void VisitPass(PassStatement p);
         void VisitPrint(PrintStatement p);
@@ -53,7 +53,7 @@ namespace Pytocs.Core.Syntax
     public interface IStatementVisitor<T>
     {
         T VisitAssert(AssertStatement a);
-        T VisitAsync(AsyncStatement a);
+        // T VisitAsync(AsyncStatement a);
         T VisitBreak(BreakStatement b);
         T VisitClass(ClassDef c);
         T VisitComment(CommentStatement c);
@@ -62,11 +62,11 @@ namespace Pytocs.Core.Syntax
         T VisitExec(ExecStatement exec);
         T VisitExp(ExpStatement e);
         T VisitFor(ForStatement f);
-        T VisitFrom(FromStatement f);
+        // T VisitFrom(FromStatement f);
         T VisitFunctionDef(FunctionDef f);
         T VisitGlobal(GlobalStatement g);
         T VisitIf(IfStatement i);
-        T VisitImport(ImportStatement i);
+        // T VisitImport(ImportStatement i);
         T VisitNonLocal(NonlocalStatement n);
         T VisitPass(PassStatement p);
         T VisitPrint(PrintStatement p);

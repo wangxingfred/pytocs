@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Pytocs.Core.Syntax;
 
 namespace Pytocs.Core.Types
 {
@@ -148,6 +149,17 @@ namespace Pytocs.Core.Types
             {
                 return UnifyTuples(tu, tv);
             }
+            
+            // TODO 验证这个逻辑的正确性
+            else if (u is StrType && (v is IntType or FloatType))
+            {
+                return u;
+            }
+            else if (v is StrType && (u is IntType or FloatType))
+            {
+                return v;
+            }
+            
             else
             {
                 return new UnionType(u, v);

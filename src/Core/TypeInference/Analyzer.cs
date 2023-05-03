@@ -117,6 +117,9 @@ namespace Pytocs.Core.TypeInference
             this.Resolved = new HashSet<Name>();
             this.Unresolved = new HashSet<Name>();
             this.References = new Dictionary<Node, List<Binding>>();
+            
+            GlobalTable.DebugName = "The Global Scope";
+            ModuleScope.DebugName = "The Module Scope";
 
             this.options = options ?? new Dictionary<string, object>();
             this.startTime = startTime;
@@ -544,7 +547,7 @@ namespace Pytocs.Core.TypeInference
             DataType? mt = GetBuiltinModule(qname);
             if (mt != null)
             {
-                state.AddExpressionBinding(
+                state.AddLocalBinding(
                     this,
                     name[0].Name,
                     new Url(Builtins.LIBRARY_URL + mt.Scope.Path + ".html"),
@@ -576,11 +579,11 @@ namespace Pytocs.Core.TypeInference
 
                     if (prev != null)
                     {
-                        prev.Scope.AddExpressionBinding(this, name[i].Name, name[i], mod, BindingKind.VARIABLE);
+                        prev.Scope.AddLocalBinding(this, name[i].Name, name[i], mod, BindingKind.VARIABLE);
                     }
                     else
                     {
-                        state.AddExpressionBinding(this, name[i].Name, name[i], mod, BindingKind.VARIABLE);
+                        state.AddLocalBinding(this, name[i].Name, name[i], mod, BindingKind.VARIABLE);
                     }
                     prev = mod;
                 }
@@ -596,11 +599,11 @@ namespace Pytocs.Core.TypeInference
                         }
                         if (prev != null)
                         {
-                            prev.Scope.AddExpressionBinding(this, name[i].Name, name[i], mod, BindingKind.VARIABLE);
+                            prev.Scope.AddLocalBinding(this, name[i].Name, name[i], mod, BindingKind.VARIABLE);
                         }
                         else
                         {
-                            state.AddExpressionBinding(this, name[i].Name, name[i], mod, BindingKind.VARIABLE);
+                            state.AddLocalBinding(this, name[i].Name, name[i], mod, BindingKind.VARIABLE);
                         }
                         prev = mod;
                     }
@@ -878,6 +881,21 @@ namespace Pytocs.Core.TypeInference
 
         public Binding CreateBinding(string id, Node node, DataType type, BindingKind kind)
         {
+            if (bindingMap.TryGetValue(node, out var binding))
+            {
+                // throw new Exception($"Already bind : node{node}, binding={binding}");
+                if (binding.Kind != kind)
+                {
+                    throw new Exception($"Already bind, old: node{node}, binding={binding}; new: type={type}, kind={kind}");
+                }
+
+                var oldType = binding.Type;
+                binding.Type = UnionType.Union(oldType, type);
+                
+                Debug.Print($"[Warning]Already bind, old: node={node}, oldType={oldType}, newType={type}, binding={binding}");
+                return binding;
+            }
+            
             var b = new Binding(id, node, type, kind);
             AddBinding(b);
             return b;

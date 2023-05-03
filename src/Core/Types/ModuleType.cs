@@ -28,23 +28,19 @@ namespace Pytocs.Core.Types
         public ModuleType(string name, string? file, string qName, NameScope parent)
         {
             this.Name = name;
-            this.file = file;  // null for builtin modules
+            this.file = file; // null for builtin modules
             this.qname = qName;
             this.Scope = new NameScope(parent, NameScopeType.MODULE);
             Scope.Path = qname;
             Scope.DataType = this;
         }
 
+        // public ClassType? Class { get; set; }
+
         public override T Accept<T>(IDataTypeVisitor<T> visitor)
         {
             return visitor.VisitModule(this);
         }
-
-        public void setName(string name)
-        {
-            this.Name = name;
-        }
-
         public override int GetHashCode()
         {
             return GetType().Name.GetHashCode();
