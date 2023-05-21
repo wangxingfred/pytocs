@@ -53,11 +53,12 @@ namespace Pytocs.Core.TypeInference
             stateType = type;
             Path = "";
 
-            if (type == NameScopeType.CLASS)
-            {
-                Forwarding = parent?.Forwarding;
-            }
-            else
+            // TODO 确认这个逻辑是否有用
+            // if (type == NameScopeType.CLASS)
+            // {
+            //     Forwarding = parent?.Forwarding;
+            // }
+            // else
             {
                 Forwarding = this;
             }
@@ -299,6 +300,22 @@ namespace Pytocs.Core.TypeInference
         public ISet<Binding>? LookupLocal(string name)
         {
             return table.TryGetValue(name, out var bs) ? bs : null;
+        }
+
+        /// <summary>
+        /// Look up a name directly in the global symbol table.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public Binding? LookupGlobal(string name)
+        {
+            var globalScope = GetGlobalScope();
+            var bs = globalScope.LookupLocal(name);
+
+            if (bs is null) return null;
+            
+            Debug.Assert(bs.Count == 1);
+            return bs.First();
         }
 
         /// <summary>

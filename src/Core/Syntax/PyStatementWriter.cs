@@ -189,6 +189,13 @@ namespace Pytocs.Core.Syntax
             VisitDecorators(f.Decorators);
             w.Write("def");
             w.Write(" ");
+
+            if (f.cls != null)
+            {
+                w.Write(f.cls.Name);
+                w.Write(f.isInstanceMethod ? ":" : ".");
+            }
+            
             w.WriteName(f.name.Name);
             w.Write("(");
             var sep = "";
@@ -272,10 +279,10 @@ namespace Pytocs.Core.Syntax
             throw new NotImplementedException();
         }
 
-        public void VisitPass(PassStatement p)
-        {
-            w.Write("pass");
-        }
+        // public void VisitPass(PassStatement p)
+        // {
+        //     w.Write("pass");
+        // }
 
         public void VisitPrint(PrintStatement p)
         {
@@ -297,20 +304,20 @@ namespace Pytocs.Core.Syntax
                 w.Write(",");
         }
 
-        public void VisitRaise(RaiseStatement r)
-        {
-            w.Write("raise");
-            if (r.ExToRaise != null)
-            {
-                w.Write(" ");
-                r.ExToRaise.Write(writer);
-                if (r.ExOriginal != null)
-                {
-                    w.Write(", ");
-                    r.ExOriginal.Write(writer);
-                }
-            }
-        }
+        // public void VisitRaise(RaiseStatement r)
+        // {
+        //     w.Write("raise");
+        //     if (r.ExToRaise != null)
+        //     {
+        //         w.Write(" ");
+        //         r.ExToRaise.Write(writer);
+        //         if (r.ExOriginal != null)
+        //         {
+        //             w.Write(", ");
+        //             r.ExOriginal.Write(writer);
+        //         }
+        //     }
+        // }
 
         public void VisitReturn(ReturnStatement r)
         {

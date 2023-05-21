@@ -689,9 +689,9 @@ namespace Pytocs.Core.Translate
             }
         }
 
-        public void VisitPass(PassStatement p)
-        {
-        }
+        // public void VisitPass(PassStatement p)
+        // {
+        // }
 
         public void VisitPrint(PrintStatement p)
         {
@@ -720,30 +720,30 @@ namespace Pytocs.Core.Translate
                 gen.Return();
         }
 
-        public void VisitRaise(RaiseStatement r)
-        {
-            if (r.ExToRaise != null)
-            {
-                var dt = types.TypeOf(r.ExToRaise);
-                if (dt is ClassType)
-                {
-                    // Python allows expressions like
-                    //   raise FooError
-
-                    var (exceptionType, namespaces) = types.Translate(dt);
-                    gen.EnsureImports(namespaces);
-                    gen.Throw(gen.New(exceptionType));
-                }
-                else
-                {
-                    gen.Throw(r.ExToRaise.Accept(xlat));
-            }
-            }
-            else
-            {
-                gen.Throw();
-            }
-        }
+        // public void VisitRaise(RaiseStatement r)
+        // {
+        //     if (r.ExToRaise != null)
+        //     {
+        //         var dt = types.TypeOf(r.ExToRaise);
+        //         if (dt is ClassType)
+        //         {
+        //             // Python allows expressions like
+        //             //   raise FooError
+        //
+        //             var (exceptionType, namespaces) = types.Translate(dt);
+        //             gen.EnsureImports(namespaces);
+        //             gen.Throw(gen.New(exceptionType));
+        //         }
+        //         else
+        //         {
+        //             gen.Throw(r.ExToRaise.Accept(xlat));
+        //     }
+        //     }
+        //     else
+        //     {
+        //         gen.Throw();
+        //     }
+        // }
 
         public void VisitSuite(SuiteStatement s)
         {

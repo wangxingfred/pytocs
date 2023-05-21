@@ -28,6 +28,7 @@ namespace Pytocs.Core.Types
         T VisitBool(BoolType b);
         T VisitClass(ClassType c);
         T VisitComplex(ComplexType c);
+        T VisitEmptyTable(EmptyTableType e);
         T VisitDict(DictType d);
         T VisitFloat(FloatType f);
         T VisitFun(FunType f);

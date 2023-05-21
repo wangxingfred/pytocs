@@ -27,7 +27,7 @@ namespace Pytocs.Core.Types
         public readonly FunctionDef? Definition;
         public Lambda? Lambda;
         public ClassType? Class = null;
-        public readonly NameScope? scope;
+        public readonly NameScope? env;
         public List<DataType>? DefaultTypes;       // types for default parameters (evaluated at def time)
         public DataType? SelfType { get; set; }                 // self's type for calls
 
@@ -41,14 +41,14 @@ namespace Pytocs.Core.Types
             : base(NameScopeType.FUNCTION)
         {
             this.Definition = func;
-            this.scope = env;
+            this.env = env;
         }
 
         public FunType(Lambda lambda, NameScope? env)
             : base(NameScopeType.FUNCTION)
         {
             this.Lambda = lambda;
-            this.scope = env;
+            this.env = env;
         }
 
         public FunType(DataType from, DataType to)
@@ -123,17 +123,17 @@ namespace Pytocs.Core.Types
         /// <summary>
         /// Create a new FunType which is an awaitable version of this FunType.
         /// </summary>
-        public FunType MakeAwaitable()
-        {
-            var fnAwaitable = new FunType(this.Definition, this.scope)
-            {
-                arrows = this.arrows.ToDictionary(k => k.Key, v => (DataType)new AwaitableType(v.Value)),
-                Lambda = this.Lambda,
-                Class = this.Class,
-                DefaultTypes = this.DefaultTypes
-            };
-            return fnAwaitable;
-        }
+        // public FunType MakeAwaitable()
+        // {
+        //     var fnAwaitable = new FunType(this.Definition, this.scope)
+        //     {
+        //         arrows = this.arrows.ToDictionary(k => k.Key, v => (DataType)new AwaitableType(v.Value)),
+        //         Lambda = this.Lambda,
+        //         Class = this.Class,
+        //         DefaultTypes = this.DefaultTypes
+        //     };
+        //     return fnAwaitable;
+        // }
 
         private bool Subsumed(DataType type1, DataType type2)
         {

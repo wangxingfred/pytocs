@@ -327,6 +327,10 @@ namespace Pytocs.Core.Translate
             return m.Prim(r.NumericValue);
         }
 
+        public CodeExpression VisitEmptyTableExp(EmptyTableExp emptyTableExp)
+        {
+            throw new NotImplementedException();
+        }
 
         public CodeExpression VisitDictInitializer(DictInitializer s)
         {
@@ -885,76 +889,76 @@ namespace Pytocs.Core.Translate
             throw new NotImplementedException();
         }
 
-        public CodeExpression VisitDictComprehension(DictComprehension dc)
-        {
-            var list = dc.Source.collection.Accept(this);
-            switch (dc.Source.variable)
-            {
-            case ExpList varList:
-                {
-                    var args = varList.Expressions.Select((e, i) => (e, $"Item{i + 1}"))
-                        .ToDictionary(d => d.e, d => d.Item2);
-                    var tpl = gensym.GenSymAutomatic("_tup_", null!, false);
-
-                    gensym.PushIdMappings(varList.Expressions.ToDictionary(e => e.ToString(), e => m.Access(tpl, args[e])));
-
-                    var kValue = dc.Key.Accept(this);
-                    var vValue = dc.Value.Accept(this);
-
-                    gensym.PopIdMappings();
-
-                    return m.Appl(
-                        m.MethodRef(list, "ToDictionary"),
-                        m.Lambda(new CodeExpression[] { tpl }, kValue),
-                        m.Lambda(new CodeExpression[] { tpl }, vValue));
-                }
-            case Identifier id:
-                {
-                    var kValue = dc.Key.Accept(this);
-                    var vValue = dc.Value.Accept(this);
-                    return m.Appl(
-                        m.MethodRef(list, "ToDictionary"),
-                        m.Lambda(new CodeExpression[] { id.Accept(this) }, kValue),
-                        m.Lambda(new CodeExpression[] { id.Accept(this) }, vValue));
-                }
-            case PyTuple tuple:
-                {
-                    var csTuple = tuple.Accept(this);
-                    if (tuple.Values.Count != 2)
-                    {
-                        //TODO: tuples, especially nested tuples, are hard.
-                        //$TODO: should use type knowledge about the tuple.
-                        var k = dc.Key.Accept(this);
-                        var v = dc.Value.Accept(this);
-
-                        var c = TranslateToLinq(m.ValueTuple(k, v), dc.Source);
-                        var type = MakeTupleType(tuple.Values);
-                        var e = gensym.GenSymAutomatic("_de_", null!, false);
-                        return m.Appl(
-                            m.MethodRef(c, "ToDictionary"),
-                            m.Lambda(new CodeExpression[] { e }, m.Access(e, "Item1")),
-                            m.Lambda(new CodeExpression[] { e }, m.Access(e, "Item2")));
-                    }
-
-                    var enumvar = gensym.GenSymAutomatic("_de", null!, false);
-                    gensym.PushIdMappings(new Dictionary<string, CodeExpression>
-                {
-                    { tuple.Values[0].ToString(), m.Access(enumvar, "Key") },
-                    { tuple.Values[1].ToString(), m.Access(enumvar, "Value") },
-                });
-
-                    var kValue = dc.Key.Accept(this);
-                    var vValue = dc.Value.Accept(this);
-
-                    gensym.PopIdMappings();
-
-                    return m.Appl(
-                        m.MethodRef(list, "ToDictionary"),
-                        m.Lambda(new CodeExpression[] { enumvar }, kValue),
-                        m.Lambda(new CodeExpression[] { enumvar }, vValue));
-                }
-            }
-            throw new NotImplementedException();
-        }
+        // public CodeExpression VisitDictComprehension(DictComprehension dc)
+        // {
+        //     var list = dc.Source.collection.Accept(this);
+        //     switch (dc.Source.variable)
+        //     {
+        //     case ExpList varList:
+        //         {
+        //             var args = varList.Expressions.Select((e, i) => (e, $"Item{i + 1}"))
+        //                 .ToDictionary(d => d.e, d => d.Item2);
+        //             var tpl = gensym.GenSymAutomatic("_tup_", null!, false);
+        //
+        //             gensym.PushIdMappings(varList.Expressions.ToDictionary(e => e.ToString(), e => m.Access(tpl, args[e])));
+        //
+        //             var kValue = dc.Key.Accept(this);
+        //             var vValue = dc.Value.Accept(this);
+        //
+        //             gensym.PopIdMappings();
+        //
+        //             return m.Appl(
+        //                 m.MethodRef(list, "ToDictionary"),
+        //                 m.Lambda(new CodeExpression[] { tpl }, kValue),
+        //                 m.Lambda(new CodeExpression[] { tpl }, vValue));
+        //         }
+        //     case Identifier id:
+        //         {
+        //             var kValue = dc.Key.Accept(this);
+        //             var vValue = dc.Value.Accept(this);
+        //             return m.Appl(
+        //                 m.MethodRef(list, "ToDictionary"),
+        //                 m.Lambda(new CodeExpression[] { id.Accept(this) }, kValue),
+        //                 m.Lambda(new CodeExpression[] { id.Accept(this) }, vValue));
+        //         }
+        //     case PyTuple tuple:
+        //         {
+        //             var csTuple = tuple.Accept(this);
+        //             if (tuple.Values.Count != 2)
+        //             {
+        //                 //TODO: tuples, especially nested tuples, are hard.
+        //                 //$TODO: should use type knowledge about the tuple.
+        //                 var k = dc.Key.Accept(this);
+        //                 var v = dc.Value.Accept(this);
+        //
+        //                 var c = TranslateToLinq(m.ValueTuple(k, v), dc.Source);
+        //                 var type = MakeTupleType(tuple.Values);
+        //                 var e = gensym.GenSymAutomatic("_de_", null!, false);
+        //                 return m.Appl(
+        //                     m.MethodRef(c, "ToDictionary"),
+        //                     m.Lambda(new CodeExpression[] { e }, m.Access(e, "Item1")),
+        //                     m.Lambda(new CodeExpression[] { e }, m.Access(e, "Item2")));
+        //             }
+        //
+        //             var enumvar = gensym.GenSymAutomatic("_de", null!, false);
+        //             gensym.PushIdMappings(new Dictionary<string, CodeExpression>
+        //         {
+        //             { tuple.Values[0].ToString(), m.Access(enumvar, "Key") },
+        //             { tuple.Values[1].ToString(), m.Access(enumvar, "Value") },
+        //         });
+        //
+        //             var kValue = dc.Key.Accept(this);
+        //             var vValue = dc.Value.Accept(this);
+        //
+        //             gensym.PopIdMappings();
+        //
+        //             return m.Appl(
+        //                 m.MethodRef(list, "ToDictionary"),
+        //                 m.Lambda(new CodeExpression[] { enumvar }, kValue),
+        //                 m.Lambda(new CodeExpression[] { enumvar }, vValue));
+        //         }
+        //     }
+        //     throw new NotImplementedException();
+        // }
     }
 }

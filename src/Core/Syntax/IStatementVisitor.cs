@@ -39,9 +39,9 @@ namespace Pytocs.Core.Syntax
         void VisitIf(IfStatement i);
         // void VisitImport(ImportStatement i);
         void VisitNonLocal(NonlocalStatement n);
-        void VisitPass(PassStatement p);
+        // void VisitPass(PassStatement p);
         void VisitPrint(PrintStatement p);
-        void VisitRaise(RaiseStatement r);
+        // void VisitRaise(RaiseStatement r);
         void VisitReturn(ReturnStatement r);
         void VisitSuite(SuiteStatement s);
         void VisitTry(TryStatement t);
@@ -68,9 +68,9 @@ namespace Pytocs.Core.Syntax
         T VisitIf(IfStatement i);
         // T VisitImport(ImportStatement i);
         T VisitNonLocal(NonlocalStatement n);
-        T VisitPass(PassStatement p);
+        // T VisitPass(PassStatement p);
         T VisitPrint(PrintStatement p);
-        T VisitRaise(RaiseStatement r);
+        // T VisitRaise(RaiseStatement r);
         T VisitReturn(ReturnStatement r);
         T VisitSuite(SuiteStatement s);
         T VisitTry(TryStatement t);

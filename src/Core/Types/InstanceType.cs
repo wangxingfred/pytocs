@@ -22,9 +22,9 @@ namespace Pytocs.Core.Types
 {
     public class InstanceType : DataType
     {
-        public DataType classType;
+        public ClassType classType;
 
-        public InstanceType(DataType c) : base(NameScopeType.INSTANCE)
+        public InstanceType(ClassType c) : base(NameScopeType.INSTANCE)
         {
             Scope.AddSuperClass(c.Scope);
             Scope.Path = c.Scope.Path;

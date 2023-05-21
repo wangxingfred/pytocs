@@ -451,33 +451,55 @@ namespace Pytocs.Core.Syntax
         }
     }
 
-    public class DictComprehension : Exp
+    // public class DictComprehension : Exp
+    // {
+    //     public DictComprehension(Exp key, Exp value, CompFor collection,  string filename, int start, int end) 
+    //         : base(filename, start, end) 
+    //     {
+    //         this.Key = key;
+    //         this.Value = value;
+    //         this.Source = collection;
+    //     }
+    //
+    //     public Exp Key { get; }
+    //     public Exp Value { get; }
+    //     public CompFor Source { get; }
+    //
+    //     public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
+    //     {
+    //         return v.VisitDictComprehension(this, context);
+    //     }
+    //
+    //     public override T Accept<T>(IExpVisitor<T> v)
+    //     {
+    //         return v.VisitDictComprehension(this);
+    //     }
+    //
+    //     public override void Accept(IExpVisitor v)
+    //     {
+    //         v.VisitDictComprehension(this);
+    //     }
+    // }
+
+    public class EmptyTableExp : Exp
     {
-        public DictComprehension(Exp key, Exp value, CompFor collection,  string filename, int start, int end) 
-            : base(filename, start, end) 
+        public EmptyTableExp(string filename, int start, int end) : base(filename, start, end)
         {
-            this.Key = key;
-            this.Value = value;
-            this.Source = collection;
-        }
-
-        public Exp Key { get; }
-        public Exp Value { get; }
-        public CompFor Source { get; }
-
-        public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
-        {
-            return v.VisitDictComprehension(this, context);
         }
 
         public override T Accept<T>(IExpVisitor<T> v)
         {
-            return v.VisitDictComprehension(this);
+            return v.VisitEmptyTableExp(this);
+        }
+
+        public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
+        {
+            return v.VisitEmptyTableExp(this, context);
         }
 
         public override void Accept(IExpVisitor v)
         {
-            v.VisitDictComprehension(this);
+            v.VisitEmptyTableExp(this);
         }
     }
 

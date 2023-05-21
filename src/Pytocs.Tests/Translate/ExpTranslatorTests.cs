@@ -65,25 +65,25 @@ namespace Pytocs.UnitTests.Translate
             Assert.Equal("fn()", Xlat("fn()"));
         }
 
-        [Fact]
-        public void ExIsNone()
-        {
-            Assert.Equal("a is null", Xlat("a is None"));
-        }
+        // [Fact]
+        // public void ExIsNone()
+        // {
+        //     Assert.Equal("a is null", Xlat("a is None"));
+        // }
+        //
+        // [Fact]
+        // public void ExIsNotNone()
+        // {
+        //     Assert.Equal("a is not null", Xlat("a is not None"));
+        // }
 
-        [Fact]
-        public void ExIsNotNone()
-        {
-            Assert.Equal("a is not null", Xlat("a is not None"));
-        }
-
-        [Fact]
-        public void ExIsOneOfManyTypes()
-        {
-            var pysrc = "isinstance(read_addr, (int, long))";
-            var sExp = "read_addr is int || read_addr is long";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
+        // [Fact]
+        // public void ExIsOneOfManyTypes()
+        // {
+        //     var pysrc = "isinstance(read_addr, (int, long))";
+        //     var sExp = "read_addr is int || read_addr is long";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
 
         [Fact]
         public void ExSelf()
@@ -91,70 +91,71 @@ namespace Pytocs.UnitTests.Translate
             Assert.Equal("this", Xlat("self"));
         }
 
-        [Fact]
-        public void ExIn()
-        {
-            Assert.Equal(
-@"new List<object> {
-    ANCESTOR,
-    EQUAL,
-    PRECEDENT
-}.Contains(this.compare(start))", Xlat("self.compare(start) in [ANCESTOR, EQUAL, PRECEDENT]"));
-        }
+//         [Fact]
+//         public void ExIn()
+//         {
+//             Assert.Equal(
+// @"new List<object> {
+//     ANCESTOR,
+//     EQUAL,
+//     PRECEDENT
+// }.Contains(this.compare(start))", Xlat("self.compare(start) in [ANCESTOR, EQUAL, PRECEDENT]"));
+//         }
+//
+//         [Fact]
+//         public void ExListComprehension()
+//         {
+//             string pySrc = "[int(x) for x in s]";
+//             string sExp = 
+// @"(from x in s
+//     select Convert.ToInt32(x)).ToList()";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
-        [Fact]
-        public void ExListComprehension()
-        {
-            string pySrc = "[int(x) for x in s]";
-            string sExp = 
-@"(from x in s
-    select Convert.ToInt32(x)).ToList()";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact(Skip = "Need type inference for this to work correctly")]
+        // public void ExSubscript()
+        // {
+        //     string pySrc = "x[2:]";
+        //     string sExp = "x.Skip(2)";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact(Skip = "Need type inference for this to work correctly")]
-        public void ExSubscript()
-        {
-            string pySrc = "x[2:]";
-            string sExp = "x.Skip(2)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact(DisplayName = nameof(ExNegativeSubscript))]
+        // public void ExNegativeSubscript()
+        // {
+        //     Assert.Equal("x[^1]", Xlat("x[-1]"));
+        // }
 
-        [Fact(DisplayName = nameof(ExNegativeSubscript))]
-        public void ExNegativeSubscript()
-        {
-            Assert.Equal("x[^1]", Xlat("x[-1]"));
-        }
+//         [Fact]
+//         public void ExListCompIf()
+//         {
+//             string pySrc = "[int(x) for x in s if x > 10]";
+//             string sExp = 
+// @"(from x in s
+//     where x > 10
+//     select Convert.ToInt32(x)).ToList()";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
-        [Fact]
-
-        public void ExListCompIf()
-        {
-            string pySrc = "[int(x) for x in s if x > 10]";
-            string sExp = 
-@"(from x in s
-    where x > 10
-    select Convert.ToInt32(x)).ToList()";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
-
-        [Fact]
-        public void ExListCompWithSplit()
-        {
-            string pySrc = "[int(x) for x in s.split('/') if x != '']";
-            string sExp =
-@"(from x in s.split(""/"")
-    where x != """"
-    select Convert.ToInt32(x)).ToList()";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+//         [Fact]
+//         public void ExListCompWithSplit()
+//         {
+//             string pySrc = "[int(x) for x in s.split('/') if x != '']";
+//             string sExp =
+// @"(from x in s.split(""/"")
+//     where x != """"
+//     select Convert.ToInt32(x)).ToList()";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
         [Fact]
         public void ExAnd()
         {
-            string pySrc = "x & 3 and y & 40";
-            string sExp = "x & 3 && y & 40";
-            Assert.Equal(sExp, Xlat(pySrc));
+            // string pySrc = "x & 3 and y & 40";
+            // string sExp = "x & 3 && y & 40";
+            var luaSrc = "x > 3 and y ~= 40";
+            var sExp = "x > 3 && y != 40";
+            Assert.Equal(sExp, Xlat(luaSrc));
         }
 
         [Fact]
@@ -165,22 +166,22 @@ namespace Pytocs.UnitTests.Translate
             Assert.Equal(sExp, Xlat(pySrc));
         }
 
-        [Fact]
-        public void ExNotIn()
-        {
-            string pySrc = "f not in [a, b]";
-            string sExp =
-@"!new List<object> {
-    a,
-    b
-}.Contains(f)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+//         [Fact]
+//         public void ExNotIn()
+//         {
+//             string pySrc = "f not in [a, b]";
+//             string sExp =
+// @"!new List<object> {
+//     a,
+//     b
+// }.Contains(f)";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
         [Fact]
         public void ExPow()
         {
-            string pySrc = "a  ** b ** c";
+            string pySrc = "a ^ b ^ c";
             string sExp = "Math.Pow(a, Math.Pow(b, c))";
             Assert.Equal(sExp, Xlat(pySrc));
         }
@@ -196,7 +197,7 @@ namespace Pytocs.UnitTests.Translate
         [Fact]
         public void ExListInitializer_SingleItem()
         {
-            var pySrc = "['indices'] ";
+            var pySrc = "{'indices'} ";
             string sExp =
 @"new List<object> {
     ""indices""
@@ -212,175 +213,176 @@ namespace Pytocs.UnitTests.Translate
             Assert.Equal(sExp, Xlat(pySrc));
         }
 
-        [Fact]
-        public void Ex_isinstance()
-        {
-            var pySrc = "isinstance(term, Foo)\r\n";
-            string sExp = "term is Foo";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_isinstance()
+        // {
+        //     var pySrc = "isinstance(term, Foo)\r\n";
+        //     string sExp = "term is Foo";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_not_isinstance()
-        {
-            var pySrc = "not isinstance(term, Foo)\r\n";
-            string sExp = "!(term is Foo)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_not_isinstance()
+        // {
+        //     var pySrc = "not isinstance(term, Foo)\r\n";
+        //     string sExp = "!(term is Foo)";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_ListFor()
-        {
-            var pySrc = "[int2byte(b) for b in bytelist]";
-            string sExp =
-@"(from b in bytelist
-    select int2byte(b)).ToList()";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+//         [Fact]
+//         public void Ex_ListFor()
+//         {
+//             var pySrc = "[int2byte(b) for b in bytelist]";
+//             string sExp =
+// @"(from b in bytelist
+//     select int2byte(b)).ToList()";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
-        [Fact]
-        public void Ex_TestExpression()
-        {
-            var pySrc = "x if cond else y";
-            string sExp = "cond ? x : y";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_TestExpression()
+        // {
+        //     var pySrc = "x if cond else y";
+        //     string sExp = "cond ? x : y";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact(DisplayName = nameof(Ex_CompFor))]
-        public void Ex_CompFor()
-        {
-            var pySrc = "sum(int2byte(b) for b in bytelist)";
-            string sExp = 
-@"(from b in bytelist
-    select int2byte(b)).Sum()";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+//         [Fact(DisplayName = nameof(Ex_CompFor))]
+//         public void Ex_CompFor()
+//         {
+//             var pySrc = "sum(int2byte(b) for b in bytelist)";
+//             string sExp = 
+// @"(from b in bytelist
+//     select int2byte(b)).Sum()";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
-        [Fact]
-        public void Ex_List()
-        {
-            var pySrc = "list(foo)";
-            string sExp = "foo.ToList()";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_List()
+        // {
+        //     var pySrc = "list(foo)";
+        //     string sExp = "foo.ToList()";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact(DisplayName = nameof(Ex_Regression1))]
-        public void Ex_Regression1()
-        {
-            var pySrc = "((a, s) for a in stackframe.alocs.values() for s in a._segment_list)";
-            string sExp =
-@"from a in stackframe.alocs.values()
-    from s in a._segment_list
-    select (a, s)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+//         [Fact(DisplayName = nameof(Ex_Regression1))]
+//         public void Ex_Regression1()
+//         {
+//             var pySrc = "((a, s) for a in stackframe.alocs.values() for s in a._segment_list)";
+//             string sExp =
+// @"from a in stackframe.alocs.values()
+//     from s in a._segment_list
+//     select (a, s)";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
         [Fact]
         public void Ex_Regression2()
         {
-            var pySrc = @"[""#"",""0"",r""\-"",r"" "",r""\+"",r""\'"",""I""]";
+            // var pySrc = @"[""#"",""0"",r""\-"",r"" "",r""\+"",r""\'"",""I""]";
+            var luaSrc = @"{""#"", ""0"", ""\\-"", "" "", ""\\+"", ""\\'"", ""I""}";
             var sExp = @"new List<object> {
     ""#"",
     ""0"",
-    @""\-"",
-    @"" "",
-    @""\+"",
-    @""\'"",
+    ""\\-"",
+    "" "",
+    ""\\+"",
+    ""\\'"",
     ""I""
 }";
-            Assert.Equal(sExp, Xlat(pySrc));
+            Assert.Equal(sExp, Xlat(luaSrc));
 
         }
 
-        [Fact]
-        public void Ex_Regression4()
-        {
-            var pySrc = "{ k:_raw_ast(a[k]) for k in a }";
-            var sExp = "a.ToDictionary(k => k, k => _raw_ast(a[k]))";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_Regression4()
+        // {
+        //     var pySrc = "{ k:_raw_ast(a[k]) for k in a }";
+        //     var sExp = "a.ToDictionary(k => k, k => _raw_ast(a[k]))";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_SetComprehension()
-        {
-            var pySrc = "{ id(e) for e in self._breakpoints[t] }";
-            var sExp = 
-@"(from e in this._breakpoints[t]
-    select id(e)).ToHashSet()";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+//         [Fact]
+//         public void Ex_SetComprehension()
+//         {
+//             var pySrc = "{ id(e) for e in self._breakpoints[t] }";
+//             var sExp = 
+// @"(from e in this._breakpoints[t]
+//     select id(e)).ToHashSet()";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
 
-        [Fact]
-        public void Ex_SetComprehension2()
-        {
-            var pySrc = "{(a.addr,b.addr) for a,b in fdiff.block_matches}";
-            var sExp =
-@"(from _tup_1 in fdiff.block_matches
-    let a = _tup_1.Item1
-    let b = _tup_1.Item2
-    select (a.addr, b.addr)).ToHashSet()";
+//         [Fact]
+//         public void Ex_SetComprehension2()
+//         {
+//             var pySrc = "{(a.addr,b.addr) for a,b in fdiff.block_matches}";
+//             var sExp =
+// @"(from _tup_1 in fdiff.block_matches
+//     let a = _tup_1.Item1
+//     let b = _tup_1.Item2
+//     select (a.addr, b.addr)).ToHashSet()";
+//
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_DictComprehension1()
+        // {
+        //     var pySrc = "{ k:copy.copy(v) for k, v in path.info.iteritems() }";
+        //     string sExp = "path.info" +
+        //         ".ToDictionary(_tup_1 => _tup_1.Item1, _tup_1 => copy.copy(_tup_1.Item2))";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_DictComprehension1()
-        {
-            var pySrc = "{ k:copy.copy(v) for k, v in path.info.iteritems() }";
-            string sExp = "path.info" +
-                ".ToDictionary(_tup_1 => _tup_1.Item1, _tup_1 => copy.copy(_tup_1.Item2))";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_DictComprehension2()
+        // {
+        //     var pySrc = "{ k:k + 'X' for k in path.info }";
+        //     string sExp = "path.info.ToDictionary(k => k, k => k + \"X\")";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_DictComprehension2()
-        {
-            var pySrc = "{ k:k + 'X' for k in path.info }";
-            string sExp = "path.info.ToDictionary(k => k, k => k + \"X\")";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_DictComprehension3()
+        // {
+        //     var pySrc = "{ a + b: b + c for a, b, c in path }";
+        //     string sExp = "path" +
+        //         ".ToDictionary(_tup_1 => _tup_1.Item1 + _tup_1.Item2, _tup_1 => _tup_1.Item2 + _tup_1.Item3)";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_DictComprehension3()
-        {
-            var pySrc = "{ a + b: b + c for a, b, c in path }";
-            string sExp = "path" +
-                ".ToDictionary(_tup_1 => _tup_1.Item1 + _tup_1.Item2, _tup_1 => _tup_1.Item2 + _tup_1.Item3)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_NamedParameterCall()
+        // {
+        //     var pySrc = "foo(bar='baz')";
+        //     var sExp = "foo(bar: \"baz\")";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_NamedParameterCall()
-        {
-            var pySrc = "foo(bar='baz')";
-            var sExp = "foo(bar: \"baz\")";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_HashSet()
+        // {
+        //     var pySrc = "set()";
+        //     var sExp = "new HashSet<object>()";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_HashSet()
-        {
-            var pySrc = "set()";
-            var sExp = "new HashSet<object>()";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
-
-        [Theory]
-        [InlineData("range(10)", "Enumerable.Range(0, 10)")]
-        [InlineData("range(10 + a)", "Enumerable.Range(0, 10 + a)")]
-        [InlineData("range(2, 10)", "Enumerable.Range(2, 10 - 2)")]
-        [InlineData("range(2 + x, 10)", "Enumerable.Range(2 + x, 10 - (2 + x))")]
-        [InlineData("range(2, 10 + y)", "Enumerable.Range(2, 10 + y - 2)")]
-        [InlineData("range(2, 10, 2)", "Enumerable.Range(0, Convert.ToInt32(Math.Ceiling(Convert.ToDouble(10 - 2) / 2))).Select(_x_1 => 2 + _x_1 * 2)")]
-        [InlineData("range(2, 10, 3 + a);", "Enumerable.Range(0, Convert.ToInt32(Math.Ceiling(Convert.ToDouble(10 - 2) / (3 + a)))).Select(_x_1 => 2 + _x_1 * (3 + a))")]
-        [InlineData("range(2, 10 + b, 5);", "Enumerable.Range(0, Convert.ToInt32(Math.Ceiling(Convert.ToDouble(10 + b - 2) / 5))).Select(_x_1 => 2 + _x_1 * 5)")]
-        [InlineData("range(2 + c, 10, 20);", "Enumerable.Range(0, Convert.ToInt32(Math.Ceiling(Convert.ToDouble(10 - (2 + c)) / 20))).Select(_x_1 => 2 + c + _x_1 * 20)")]
-        public void Ex_range(string pyStm, string sExp)
-        {
-            var x = Xlat(pyStm);
-            Assert.Equal(sExp, x);
-        }
+        // [Theory]
+        // [InlineData("range(10)", "Enumerable.Range(0, 10)")]
+        // [InlineData("range(10 + a)", "Enumerable.Range(0, 10 + a)")]
+        // [InlineData("range(2, 10)", "Enumerable.Range(2, 10 - 2)")]
+        // [InlineData("range(2 + x, 10)", "Enumerable.Range(2 + x, 10 - (2 + x))")]
+        // [InlineData("range(2, 10 + y)", "Enumerable.Range(2, 10 + y - 2)")]
+        // [InlineData("range(2, 10, 2)", "Enumerable.Range(0, Convert.ToInt32(Math.Ceiling(Convert.ToDouble(10 - 2) / 2))).Select(_x_1 => 2 + _x_1 * 2)")]
+        // [InlineData("range(2, 10, 3 + a);", "Enumerable.Range(0, Convert.ToInt32(Math.Ceiling(Convert.ToDouble(10 - 2) / (3 + a)))).Select(_x_1 => 2 + _x_1 * (3 + a))")]
+        // [InlineData("range(2, 10 + b, 5);", "Enumerable.Range(0, Convert.ToInt32(Math.Ceiling(Convert.ToDouble(10 + b - 2) / 5))).Select(_x_1 => 2 + _x_1 * 5)")]
+        // [InlineData("range(2 + c, 10, 20);", "Enumerable.Range(0, Convert.ToInt32(Math.Ceiling(Convert.ToDouble(10 - (2 + c)) / 20))).Select(_x_1 => 2 + c + _x_1 * 20)")]
+        // public void Ex_range(string pyStm, string sExp)
+        // {
+        //     var x = Xlat(pyStm);
+        //     Assert.Equal(sExp, x);
+        // }
 
         [Fact]
         public void Ex_HashTable()
@@ -390,28 +392,29 @@ namespace Pytocs.UnitTests.Translate
             Assert.Equal(sExp, Xlat(pySrc));
         }
 
-        [Fact]
-        public void Ex_Regression5()
-        {
-            var pySrc = "round(float( float(count) / float(self.insn_count)), 3) >= .67";
-            var sExp = "round(Convert.ToDouble(Convert.ToDouble(count) / Convert.ToDouble(this.insn_count)), 3) >= 0.67";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_Regression5()
+        // {
+        //     var pySrc = "round(float( float(count) / float(self.insn_count)), 3) >= .67";
+        //     var sExp = "round(Convert.ToDouble(Convert.ToDouble(count) / Convert.ToDouble(this.insn_count)), 3) >= 0.67";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_ByteConstant()
-        {
-            var pySrc = "b'\\xfe\\xed' * init_stack_size";
-            var sExp = "new byte[] { 0xfe, 0xed } * init_stack_size";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_ByteConstant()
+        // {
+        //     var pySrc = "b'\\xfe\\xed' * init_stack_size";
+        //     var sExp = "new byte[] { 0xfe, 0xed } * init_stack_size";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
         [Fact]
         public void Ex_intrinsic_len()
         {
-            var pysrc = "len(foo.bar)";
+            // var pysrc = "len(foo.bar)";
+            var luasrc = "#(foo.bar)";
             var sExp = "foo.bar.Count";
-            Assert.Equal(sExp, Xlat(pysrc));
+            Assert.Equal(sExp, Xlat(luasrc));
         }
 
         [Fact]

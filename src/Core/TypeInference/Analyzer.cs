@@ -765,11 +765,11 @@ namespace Pytocs.Core.TypeInference
             while (uncalled.Count != 0)
             {
                 var uncalledDup = uncalled.ToList();
-                foreach (FunType cl in uncalledDup)
+                foreach (var funType in uncalledDup)
                 {
                     progress.Tick();
-                    var transformer = new TypeCollector(cl.scope!, this);
-                    transformer.Apply(cl, null, null, null, null, null);
+                    var transformer = new TypeCollector(funType.env!, this);
+                    transformer.Apply(funType, null, null, null, null, null);
                 }
             }
         }

@@ -582,7 +582,7 @@ eval_input: testlist NEWLINE* ENDMARKER
             // var token = Expect(TokenType.ID);
             // var fnName = new Identifier((string) token.Value!, filename, token.Start, token.End);
             var name = id();
-            
+
             // 识别function A.B() 或 function A:B()
             Identifier? cls = null;
             var isInstanceMethod = false;
@@ -590,13 +590,14 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 cls = name;
                 name = id();
-            } else if (PeekAndDiscard(TokenType.COLON))
+            }
+            else if (PeekAndDiscard(TokenType.COLON))
             {
                 cls = name;
                 name = id();
                 isInstanceMethod = true;
             }
-            
+
             // Debug.Print("  Parsing {0}", fnName.Name);
             List<Parameter> parms = parameters();
             Exp? annotation = null;
@@ -999,7 +1000,7 @@ eval_input: testlist NEWLINE* ENDMARKER
             switch (lexer.Peek().Type)
             {
             case TokenType.Del: return del_stmt();
-            case TokenType.Pass: return pass_stmt();
+            // case TokenType.Pass: return pass_stmt();
             case TokenType.Break: return break_stmt();
             case TokenType.Continue: return continue_stmt();
             case TokenType.Return: return return_stmt();
@@ -1228,11 +1229,11 @@ eval_input: testlist NEWLINE* ENDMARKER
         }
 
         //pass_stmt: 'pass'
-        public Statement pass_stmt()
-        {
-            var token = Expect(TokenType.Pass);
-            return new PassStatement(filename, token.Start, token.End);
-        }
+        // public Statement pass_stmt()
+        // {
+        //     var token = Expect(TokenType.Pass);
+        //     return new PassStatement(filename, token.Start, token.End);
+        // }
 
         //flow_stmt: break_stmt | continue_stmt | return_stmt | raise_stmt | yield_stmt
         //break_stmt: 'break'
@@ -1485,7 +1486,7 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 return funcdef(posStart);
             }
-            
+
             // var expr = expr_stmt() as ExpStatement;
             // return new ExpStatement(expr!, localStart, true); // 重新创建一个IsLocal的ExpStatement
             var lhs = new List<Identifier>();
@@ -1505,11 +1506,11 @@ eval_input: testlist NEWLINE* ENDMARKER
                     rhs.Add(r);
                 } while (PeekAndDiscard(TokenType.COMMA));
             }
-            
-            var posEnd = rhs.Count > 0 ? rhs.Last().End : lhs.Last().End;            
+
+            var posEnd = rhs.Count > 0 ? rhs.Last().End : lhs.Last().End;
             var exp = new LocalVarsExp(lhs, rhs, filename, posStart, posEnd);
             return new ExpStatement(exp, filename, posStart, posEnd);
-            
+
             // var lhs = testlist_star_expr(lhsNames);
             // {
             //     var rhsStack = new Stack<Exp>();
@@ -1921,6 +1922,7 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 return new SuiteStatement(stmts, filename, 0, 0);
             }
+
             return new SuiteStatement(stmts, filename, stmts[0].Start, stmts.Last().End);
         }
 
@@ -2136,7 +2138,8 @@ eval_input: testlist NEWLINE* ENDMARKER
         }
 
         //expr: xor_expr ('|' xor_expr)*
-        public Exp? expr()
+        public Exp? ex
+        --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------pr()
         {
             // var e = xor_expr();
             // if (e == null)
@@ -2297,7 +2300,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                 op = Op.Sub;
                 break;
             // case TokenType.OP_TILDE: posStart = lexer.Get().Start; op = Op.Complement; break;
-            default: return atom_expr(); // return power();
+            default: return power();
             }
 
             var e = factor();
@@ -2307,20 +2310,21 @@ eval_input: testlist NEWLINE* ENDMARKER
         }
 
         // power: atom_expr ['**' factor]
-        // public Exp? power()
-        // {
-        //     var e = atom_expr();
-        //     if (e == null)
-        //         return null;
-        // if (PeekAndDiscard(TokenType.OP_STARSTAR))
-        // {
-        //     var r = factor();
-        //     if (r == null)
-        //         throw Unexpected();
-        //     e = new BinExp(Op.Exp, e, r, filename, e.Start, r.End);
-        // }
-        //     return e;
-        // }
+        public Exp? power()
+        {
+            var e = atom_expr();
+            if (e == null)
+                return null;
+            if (PeekAndDiscard(TokenType.OP_CARET))
+            {
+                var r = factor();
+                if (r == null)
+                    throw Unexpected();
+                e = new BinExp(Op.Exp, e, r, filename, e.Start, r.End);
+            }
+
+            return e;
+        }
 
         // atom_expr: ['await'] atom trailer*
         public Exp? atom_expr()
@@ -2685,16 +2689,16 @@ eval_input: testlist NEWLINE* ENDMARKER
         //                  (test (comp_for | (',' test)* [','])) )
         public Exp dictorsetmaker(int posStart)
         {
-            int posEnd;
-            var dictItems = new List<(Exp? Key, Exp Value)>();
-            var setItems = new List<Exp>();
-            while (PeekAndDiscard(TokenType.COMMENT))
-                ;
+            while (PeekAndDiscard(TokenType.COMMENT)) ;
 
             // TODO 区分空列表和空字典
             if (Peek(TokenType.RBRACE, out var token))
-                return new DictInitializer(dictItems, filename, posStart, token.End);
+                return new EmptyTableExp(filename, posStart, token.End);
 
+
+            int posEnd;
+            var dictItems = new List<(Exp? Key, Exp Value)>();
+            var setItems = new List<Exp>();
             Exp? k = null;
             Exp? v;
             /*if (PeekAndDiscard(TokenType.OP_STARSTAR))

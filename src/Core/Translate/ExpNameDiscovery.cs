@@ -217,11 +217,16 @@ namespace Pytocs.Core.Translate
             throw new NotImplementedException();
         }
 
-        public void VisitDictComprehension(DictComprehension dc)
+        // public void VisitDictComprehension(DictComprehension dc)
+        // {
+        //     throw new NotImplementedException();
+        // }
+
+        public void VisitEmptyTableExp(EmptyTableExp emptyTableExp)
         {
             throw new NotImplementedException();
         }
-
+        
         public void VisitDictInitializer(DictInitializer di)
         {
             throw new NotImplementedException();

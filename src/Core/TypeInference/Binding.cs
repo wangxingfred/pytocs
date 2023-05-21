@@ -57,12 +57,12 @@ namespace Pytocs.Core.TypeInference
             }
             Name = SetLocationInfo(node);
         }
-
+        
         public readonly string Name;            // unqualified name
-        public readonly Node Node;              // entity that has the type.
-        public readonly BindingKind Kind;       // name usage context
         public string QName;                    // qualified name
-        public DataType Type;                   // inferred type
+        public readonly Node Node;              // entity that has the type.
+        public BindingKind Kind { get; private set; }   // name usage context
+        public DataType Type { get; set; }              // inferred type
 
         /// <summary>
         /// The places where this binding is referenced.
@@ -93,6 +93,12 @@ namespace Pytocs.Core.TypeInference
         public bool IsURL => fileOrUrl != null && fileOrUrl.StartsWith("http://");
 
 
+        public void ChangeType(DataType type, BindingKind kind)
+        {
+            this.Type = type;
+            this.Kind = kind;
+        }
+        
         private string SetLocationInfo(Node node)
         {
             this.start = node.Start;

@@ -101,7 +101,7 @@ namespace Pytocs.Core.Types
             return base.GetHashCode();
         }
 
-        public override DataType MakeGenericType(params DataType[] typeArguments)
+        public override ClassType MakeGenericType(params DataType[] typeArguments)
         {
             if (genericArguments is null)
                 throw new InvalidOperationException("This class is not generic.");

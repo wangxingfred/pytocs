@@ -35,7 +35,8 @@ namespace Pytocs.Core.Syntax
         void VisitBinExp(BinExp bin);
         void VisitBooleanLiteral(BooleanLiteral b);
         void VisitBytes(Bytes bytes);
-        void VisitDictComprehension(DictComprehension dc);
+        // void VisitDictComprehension(DictComprehension dc);
+        void VisitEmptyTableExp(EmptyTableExp emptyTableExp);
         void VisitDictInitializer(DictInitializer di);
         void VisitDottedName(DottedName dottedName);
         void VisitEllipsis(Ellipsis e);
@@ -81,8 +82,9 @@ namespace Pytocs.Core.Syntax
         T VisitBytes(Bytes bytes);
         T VisitCompFor(CompFor compFor);
         T VisitCompIf(CompIf compIf);
+        T VisitEmptyTableExp(EmptyTableExp emptyTableExp);
         T VisitDictInitializer(DictInitializer di);
-        T VisitDictComprehension(DictComprehension dc);
+        // T VisitDictComprehension(DictComprehension dc);
         T VisitDottedName(DottedName dottedName);
         T VisitEllipsis(Ellipsis e);
         T VisitExpList(ExpList list);
@@ -125,8 +127,9 @@ namespace Pytocs.Core.Syntax
         T VisitBytes(Bytes bytes, C context);
         T VisitCompFor(CompFor compFor, C context);
         T VisitCompIf(CompIf compIf, C context);
+        T VisitEmptyTableExp(EmptyTableExp emptyTableExp, C context);
         T VisitDictInitializer(DictInitializer di, C context);
-        T VisitDictComprehension(DictComprehension dc, C context);
+        // T VisitDictComprehension(DictComprehension dc, C context);
         T VisitDottedName(DottedName dottedName, C context);
         T VisitEllipsis(Ellipsis e, C context);
         T VisitExpList(ExpList list, C context);

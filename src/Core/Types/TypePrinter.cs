@@ -60,6 +60,11 @@ namespace Pytocs.Core.Types
             return "complex";
         }
 
+        public string VisitEmptyTable(EmptyTableType e)
+        {
+            return "{}";
+        }
+
         public string VisitDict(DictType d)
         {
             //        StringBuilder sb = new StringBuilder();
