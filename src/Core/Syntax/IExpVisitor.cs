@@ -27,10 +27,10 @@ namespace Pytocs.Core.Syntax
         void VisitAliasedExp(AliasedExp aliasedExp);
         void VisitApplication(Application appl);
         void VisitArrayRef(ArrayRef arrayRef);
-        void VisitLocalVarsExp(LocalVarsExp localVarsExp);
+        // void VisitLocalVarsExp(LocalVarsExp localVarsExp);
         void VisitAssignExp(AssignExp assignExp);
         // void VisitAssignmentExp(AssignmentExp assignmentExp);
-        void VisitAwait(AwaitExp awaitExp);
+        // void VisitAwait(AwaitExp awaitExp);
         void VisitBigLiteral(BigLiteral bigLiteral);
         void VisitBinExp(BinExp bin);
         void VisitBooleanLiteral(BooleanLiteral b);
@@ -47,7 +47,7 @@ namespace Pytocs.Core.Syntax
         void VisitImaginaryLiteral(ImaginaryLiteral im);
         void VisitIntLiteral(IntLiteral s);
         void VisitIterableUnpacker(IterableUnpacker iterableUnpacker);
-        void VisitLambda(Lambda lambda);
+        // void VisitLambda(Lambda lambda);
         void VisitListComprehension(ListComprehension lc);
         void VisitList(PyList l);
         void VisitLongLiteral(LongLiteral l);
@@ -61,8 +61,8 @@ namespace Pytocs.Core.Syntax
         void VisitTest(TestExp test);
         void VisitTuple(PyTuple tuple);
         void VisitUnary(UnaryExp u);
-        void VisitYieldExp(YieldExp yieldExp);
-        void VisitYieldFromExp(YieldFromExp yieldExp);
+        // void VisitYieldExp(YieldExp yieldExp);
+        // void VisitYieldFromExp(YieldFromExp yieldExp);
         void VisitCompFor(CompFor compFor);
         void VisitCompIf(CompIf compIf);
     }
@@ -72,10 +72,10 @@ namespace Pytocs.Core.Syntax
         T VisitAliasedExp(AliasedExp aliasedExp);
         T VisitApplication(Application appl);
         T VisitArrayRef(ArrayRef arrayRef);
-        T VisitLocalVarsExp(LocalVarsExp localVarsExp);
+        // T VisitLocalVarsExp(LocalVarsExp localVarsExp);
         T VisitAssignExp(AssignExp assignExp);
         // T VisitAssignmentExp(AssignmentExp assignmentExp);
-        T VisitAwait(AwaitExp awaitExp);
+        // T VisitAwait(AwaitExp awaitExp);
         T VisitBigLiteral(BigLiteral bigLiteral);
         T VisitBinExp(BinExp bin);
         T VisitBooleanLiteral(BooleanLiteral b);
@@ -94,7 +94,7 @@ namespace Pytocs.Core.Syntax
         T VisitImaginary(ImaginaryLiteral im);
         T VisitIntLiteral(IntLiteral s);
         T VisitIterableUnpacker(IterableUnpacker unpacker);
-        T VisitLambda(Lambda lambda);
+        // T VisitLambda(Lambda lambda);
         T VisitListComprehension(ListComprehension lc);
         T VisitList(PyList l);
         T VisitLongLiteral(LongLiteral l);
@@ -108,8 +108,8 @@ namespace Pytocs.Core.Syntax
         T VisitTest(TestExp test);
         T VisitTuple(PyTuple tuple);
         T VisitUnary(UnaryExp u);
-        T VisitYieldExp(YieldExp yieldExp);
-        T VisitYieldFromExp(YieldFromExp yieldExp);
+        // T VisitYieldExp(YieldExp yieldExp);
+        // T VisitYieldFromExp(YieldFromExp yieldExp);
     }
 
     public interface IExpVisitor<T, C>
@@ -117,10 +117,10 @@ namespace Pytocs.Core.Syntax
         T VisitAliasedExp(AliasedExp aliasedExp, C context);
         T VisitApplication(Application appl, C context);
         T VisitArrayRef(ArrayRef arrayRef, C context);
-        T VisitLocalVarsExp(LocalVarsExp localVarsExp, C context);
+        // T VisitLocalVarsExp(LocalVarsExp localVarsExp, C context);
         T VisitAssignExp(AssignExp assignExp, C context);
         // T VisitAssignmentExp(AssignmentExp assignmentExp, C context);
-        T VisitAwait(AwaitExp awaitExp, C context);
+        // T VisitAwait(AwaitExp awaitExp, C context);
         T VisitBigLiteral(BigLiteral bigLiteral, C context);
         T VisitBinExp(BinExp bin, C context);
         T VisitBooleanLiteral(BooleanLiteral b, C context);
@@ -139,7 +139,7 @@ namespace Pytocs.Core.Syntax
         T VisitImaginary(ImaginaryLiteral im, C context);
         T VisitIntLiteral(IntLiteral s, C context);
         T VisitIterableUnpacker(IterableUnpacker unpacker, C context);
-        T VisitLambda(Lambda lambda, C context);
+        // T VisitLambda(Lambda lambda, C context);
         T VisitListComprehension(ListComprehension lc, C context);
         T VisitList(PyList l, C context);
         T VisitLongLiteral(LongLiteral l, C context);
@@ -153,7 +153,7 @@ namespace Pytocs.Core.Syntax
         T VisitTest(TestExp test, C context);
         T VisitTuple(PyTuple tuple, C context);
         T VisitUnary(UnaryExp u, C context);
-        T VisitYieldExp(YieldExp yieldExp, C context);
-        T VisitYieldFromExp(YieldFromExp yieldExp, C context);
+        // T VisitYieldExp(YieldExp yieldExp, C context);
+        // T VisitYieldFromExp(YieldFromExp yieldExp, C context);
     }
 }

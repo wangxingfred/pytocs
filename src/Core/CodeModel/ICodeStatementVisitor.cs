@@ -27,6 +27,7 @@ namespace Pytocs.Core.CodeModel
         void VisitBreak(CodeBreakStatement b);
         void VisitComment(CodeCommentStatement codeCommentStatement);
         void VisitContinue(CodeContinueStatement c);
+        void VisitFor(CodeForStatement f);
         void VisitForeach(CodeForeachStatement f);
         void VisitIf(CodeConditionStatement cond);
         void VisitPostTestLoop(CodePostTestLoopStatement l);
@@ -46,9 +47,11 @@ namespace Pytocs.Core.CodeModel
         T VisitBreak(CodeBreakStatement b);
         T VisitComment(CodeCommentStatement codeCommentStatement);
         T VisitContinue(CodeContinueStatement c);
+        T VisitFor(CodeForStatement f);
         T VisitForeach(CodeForeachStatement f);
         T VisitIf(CodeConditionStatement cond);
         T VisitLocalFunction(CodeLocalFunction fn);
+        T VisitLambdaStatement(CodeLambdaStatement l);
         T VisitPostTestLoop(CodePostTestLoopStatement l);
         T VisitPreTestLoop(CodePreTestLoopStatement l);
         T VisitReturn(CodeMethodReturnStatement ret);

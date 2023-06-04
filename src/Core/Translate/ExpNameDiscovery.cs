@@ -42,11 +42,6 @@ namespace Pytocs.Core.Translate
             throw new NotImplementedException();
         }
         
-        public void VisitLocalVarsExp(LocalVarsExp localVarsExp)
-        {
-            throw new NotImplementedException();
-        }
-
         public void VisitAssignExp(AssignExp assignExp)
         {
             throw new NotImplementedException();
@@ -57,10 +52,10 @@ namespace Pytocs.Core.Translate
         //     throw new NotImplementedException();
         // }
 
-        public void VisitAwait(AwaitExp awaitExp)
-        {
-            throw new NotImplementedException();
-        }
+        // public void VisitAwait(AwaitExp awaitExp)
+        // {
+        //     throw new NotImplementedException();
+        // }
 
         public void VisitBigLiteral(BigLiteral bigLiteral)
         {
@@ -127,10 +122,10 @@ namespace Pytocs.Core.Translate
             throw new NotImplementedException();
         }
 
-        public void VisitLambda(Lambda lambda)
-        {
-            throw new NotImplementedException();
-        }
+        // public void VisitLambda(Lambda lambda)
+        // {
+        //     throw new NotImplementedException();
+        // }
 
         public void VisitListComprehension(ListComprehension lc)
         {
@@ -192,15 +187,15 @@ namespace Pytocs.Core.Translate
             throw new NotImplementedException();
         }
 
-        public void VisitYieldExp(YieldExp yieldExp)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void VisitYieldFromExp(YieldFromExp yieldExp)
-        {
-            throw new NotImplementedException();
-        }
+        // public void VisitYieldExp(YieldExp yieldExp)
+        // {
+        //     throw new NotImplementedException();
+        // }
+        //
+        // public void VisitYieldFromExp(YieldFromExp yieldExp)
+        // {
+        //     throw new NotImplementedException();
+        // }
 
         public void VisitAliasedExp(AliasedExp aliasedExp)
         {

@@ -1,4 +1,5 @@
 #region License
+
 //  Copyright 2015-2022 John Källén
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +13,7 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+
 #endregion
 
 using Pytocs.Core.CodeModel;
@@ -27,8 +29,8 @@ namespace Pytocs.Core.Translate
     {
         private readonly CodeGenerator gen;
 
-        public ModuleTranslator(TypeReferenceTranslator types, CodeGenerator gen) : 
-            base(null, types, gen, new SymbolGenerator(), new HashSet<string>())
+        public ModuleTranslator(TypeReferenceTranslator types, CodeGenerator gen, string moduleName) :
+            base(moduleName, null, null, types, gen, new SymbolGenerator(), new HashSet<string>())
         {
             this.gen = gen;
         }
@@ -44,14 +46,16 @@ namespace Pytocs.Core.Translate
                 {
                     if (c == 0 && IsStringStatement(s, out Str lit))
                     {
-                    GenerateDocComment(lit.Value, gen.CurrentNamespace.Comments);
+                        GenerateDocComment(lit.Value, gen.CurrentNamespace.Comments);
                     }
                     else
                     {
                         s.Accept(this);
                     }
+
                     ++c;
                 }
+
                 if (gen.Scope.Count > 0)
                 {
                     // Module-level statements are simulated with a static constructor.
@@ -66,35 +70,42 @@ namespace Pytocs.Core.Translate
             {
                 // We have statements other than simple assignments. Generate
                 // definitions for all fields, then put all the code in the constructor.
-                int c = 0;
-                foreach (var s in stms)
-                {
-                    if (c == 0 && IsStringStatement(s, out Str lit))
-                    {
-                        GenerateDocComment(lit.Value, gen.CurrentNamespace.Comments);
-                    }
-                    else if (IsAssignment(s, out AssignExp? ass) &&
-                        ass.Dst is Identifier id)
-                    {
-                        var (fieldType, nmspcs) = base.types.TranslateTypeOf(id);
-                        gen.EnsureImports(nmspcs);
+                // int c = 0;
+                // foreach (var s in stms)
+                // {
+                //     if (c == 0 && IsStringStatement(s, out Str lit))
+                //     {
+                //         GenerateDocComment(lit.Value, gen.CurrentNamespace.Comments);
+                //     }
+                //     else if (IsAssignment(s, out AssignExp? ass) &&
+                //              ass.Dst is Identifier id)
+                //     {
+                //         var (fieldType, nmspcs) = base.types.TranslateTypeOf(id);
+                //         gen.EnsureImports(nmspcs);
+                //
+                //         GenerateField(id.Name, fieldType, null);
+                //     }
+                //
+                //     ++c;
+                // }
 
-                        GenerateField(id.Name, fieldType, null);
-                    }
-                    ++c;
+                // TODO 检查这个修改：去掉模块的静态构造函数
+                // var methodName = gen.CurrentType.Name!;
+                // var parameters = Array.Empty<CodeParameterDeclarationExpression>();
+                // this.GenerateFieldForAssignment = false;
+                // var static_ctor = gen.StaticMethod(methodName, parameters, null, () =>
+                // {
+                //     foreach (var stm in stms)
+                //     {
+                //         stm.Accept(this);
+                //     }
+                // });
+                // static_ctor.Attributes = MemberAttributes.Static;
+                
+                foreach (var stm in stms)
+                {
+                    stm.Accept(this);
                 }
-
-                var methodName = gen.CurrentType.Name!;
-                var parameters = Array.Empty<CodeParameterDeclarationExpression>();
-                this.GenerateFieldForAssignment = false;
-                var static_ctor = gen.StaticMethod(methodName, parameters, null, () =>
-                {
-                    foreach (var stm in stms)
-                    {
-                        stm.Accept(this);
-                    }
-                });
-                static_ctor.Attributes = MemberAttributes.Static;
             }
         }
 
@@ -122,6 +133,7 @@ namespace Pytocs.Core.Translate
                         case Str:
                             break;
                         }
+
                         break;
                     case PrintStatement:
                         sawOnlySimpleAssignments = false;
@@ -129,6 +141,7 @@ namespace Pytocs.Core.Translate
                     }
                 }
             }
+
             return sawOnlySimpleAssignments ? null : result;
         }
 
@@ -152,6 +165,7 @@ namespace Pytocs.Core.Translate
                 if (strStmt == null)
                     return false;
             }
+
             lit = (strStmt.Expression as Str)!;
             return lit != null;
         }
@@ -162,6 +176,7 @@ namespace Pytocs.Core.Translate
             {
                 s = ss.Statements[0];
             }
+
             if (s is ExpStatement es && es.Expression is AssignExp a)
             {
                 ass = a;
@@ -174,11 +189,12 @@ namespace Pytocs.Core.Translate
             }
         }
 
-        protected override CodeMemberField GenerateField(string name, CodeTypeReference fieldType, CodeExpression? value)
-        {
-            var field = base.GenerateField(name, fieldType, value);
-            field.Attributes |= MemberAttributes.Static;
-            return field;
-        }
+        // protected override CodeMemberField GenerateField(string name, CodeTypeReference fieldType,
+        //     CodeExpression? value)
+        // {
+        //     var field = base.GenerateField(name, fieldType, value);
+        //     field.Attributes |= MemberAttributes.Static;
+        //     return field;
+        // }
     }
 }

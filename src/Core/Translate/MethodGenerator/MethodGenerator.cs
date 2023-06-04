@@ -27,10 +27,11 @@ namespace Pytocs.Core.Translate
     /// </summary>
     public class MethodGenerator
     {
-        private readonly ClassDef? classDef;
-        protected readonly FunctionDef f;
-        protected readonly string? fnName;
-        protected readonly List<Parameter> args;
+        protected readonly string? className;
+        protected readonly ClassDef? classDef;
+        protected readonly ClassType? classType;
+        protected readonly MethodStatement methodStatement;
+
         private readonly bool isStatic;
         protected readonly bool isAsync;
         protected ExpTranslator xlat;
@@ -42,19 +43,19 @@ namespace Pytocs.Core.Translate
         protected HashSet<string> globals;
 
         public MethodGenerator(
+            string? className,
             ClassDef? classDef,
-            FunctionDef f, 
-            string? fnName,
-            List<Parameter> args,
+            ClassType? classType,
+            MethodStatement methodStatement,
             bool isStatic, 
             bool isAsync,
             TypeReferenceTranslator types,
             CodeGenerator gen)
         {
+            this.className = className;
             this.classDef = classDef;
-            this.f = f;
-            this.fnName = fnName;
-            this.args = args;
+            this.classType = classType;
+            this.methodStatement = methodStatement;
             this.isStatic = isStatic;
             this.isAsync = isAsync;
             this.gen = gen;
@@ -62,15 +63,20 @@ namespace Pytocs.Core.Translate
             this.types = types;
             this.xlat = new ExpTranslator(classDef, this.types, gen, gensym);
             this.globals = new HashSet<string>();
-            this.stmtXlat = new StatementTranslator(classDef, types, gen, gensym, globals);
+            this.stmtXlat = new StatementTranslator(className, classDef, classType, types, gen, gensym, globals);
         }
+
+        protected virtual string MethodName => methodStatement.name.Name;
+        protected SuiteStatement MethodBody => methodStatement.body;
+
+        protected virtual List<Parameter> MethodParams => methodStatement.parameters;
 
         /// <summary>
         /// Generate a C# method implementation from the Python function definition.
         /// </summary>
         public ICodeFunction Generate()
         {
-            var parameters = CreateFunctionParameters(args);
+            var parameters = CreateFunctionParameters(methodStatement.parameters);
             var returnType = CreateReturnType();
             return Generate(returnType, parameters);
         }
@@ -80,11 +86,11 @@ namespace Pytocs.Core.Translate
             CodeMemberMethod method;
             if (isStatic)
             {
-                method = gen.StaticMethod(fnName!, parms, retType, () => Xlat(f.body));
+                method = gen.StaticMethod(MethodName, parms, retType, () => Xlat(MethodBody));
             }
             else
             {
-                method = gen.Method(fnName!, parms, retType, () => Xlat(f.body));
+                method = gen.Method(MethodName, parms, retType, () => Xlat(MethodBody));
             }
             method.IsAsync = isAsync;
             GenerateTupleParameterUnpackers(method);
@@ -94,7 +100,7 @@ namespace Pytocs.Core.Translate
 
         protected void GenerateTupleParameterUnpackers(CodeMemberMethod method)
         {
-            foreach (var parameter in args.Where(p => p.tuple != null))
+            foreach (var parameter in MethodParams.Where(p => p.tuple != null))
             {
                 var csTupleParam = mpPyParamToCs![parameter];
                 var tuplePath = new CodeVariableReferenceExpression(csTupleParam.ParameterName!);
@@ -109,10 +115,11 @@ namespace Pytocs.Core.Translate
         {
             if (p.Id?.Name == "_")
                 return;
-            method.Statements.Insert(0, new CodeVariableDeclarationStatement("object", p.Id!.Name)
-            {
-                InitExpression = gen.Access(tuplePath, "Item" + i)
-            });
+
+            var init = gen.Access(tuplePath, "Item" + i);
+            var decl = CodeVariableDeclarationStatement.CreateVar(p.Id!.Name, init);
+
+            method.Statements.Insert(0, decl);
         }
 
         public void Xlat(SuiteStatement suite)
@@ -124,7 +131,7 @@ namespace Pytocs.Core.Translate
 
         private CodeTypeReference CreateReturnType()
         {
-            var pyType = this.types.TypeOf(f.name);
+            var pyType = this.types.TypeOf(methodStatement.name);
             CodeTypeReference dtRet;
             if (pyType is FunType fnType)
             {

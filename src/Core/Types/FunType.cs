@@ -25,7 +25,7 @@ namespace Pytocs.Core.Types
     {
         public IDictionary<DataType, DataType> arrows = new Dictionary<DataType, DataType>();
         public readonly FunctionDef? Definition;
-        public Lambda? Lambda;
+        // public Lambda? Lambda;
         public ClassType? Class = null;
         public readonly NameScope? env;
         public List<DataType>? DefaultTypes;       // types for default parameters (evaluated at def time)
@@ -44,12 +44,12 @@ namespace Pytocs.Core.Types
             this.env = env;
         }
 
-        public FunType(Lambda lambda, NameScope? env)
-            : base(NameScopeType.FUNCTION)
-        {
-            this.Lambda = lambda;
-            this.env = env;
-        }
+        // public FunType(Lambda lambda, NameScope? env)
+        //     : base(NameScopeType.FUNCTION)
+        // {
+        //     this.Lambda = lambda;
+        //     this.env = env;
+        // }
 
         public FunType(DataType from, DataType to)
             : base(NameScopeType.FUNCTION)

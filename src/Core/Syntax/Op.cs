@@ -64,6 +64,7 @@ namespace Pytocs.Core.Syntax
         Assign,
         LogAnd,
         LogOr,
+        LuaLength
     }
 
     public static class OpTools

@@ -64,9 +64,9 @@ namespace Pytocs.Core.Syntax
                 w.Write(")");
             }
             w.WriteLine(":");
-            ++w.IndentLevel;
-            c.body.Accept(this);
-            --w.IndentLevel;
+            // ++w.IndentLevel;
+            // c.body.Accept(this);
+            // --w.IndentLevel;
         }
 
         public void VisitComment(CommentStatement c)
@@ -113,9 +113,19 @@ namespace Pytocs.Core.Syntax
             e.Expression.Write(writer);
         }
 
+        public void VisitVariableDeclaration(VariableDeclarationStatement e)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void VisitVariableClassStatement(VariableClassStatement v)
+        {
+            throw new NotImplementedException();
+        }
+
         public void VisitFor(ForStatement f)
         {
-            if (f.IsNumeric)
+            if (f.Kind == ForStatement.ForKind.Numeric)
             {
                 w.Write("for");
                 w.Write(" ");
@@ -220,6 +230,11 @@ namespace Pytocs.Core.Syntax
             ++w.IndentLevel;
             f.body.Accept(this);
             --w.IndentLevel;
+        }
+
+        public void VisitLambda(LambdaStatement l)
+        {
+            throw new NotImplementedException();
         }
 
         public void VisitGlobal(GlobalStatement g)

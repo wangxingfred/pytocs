@@ -60,6 +60,11 @@ namespace Pytocs.Core.CodeModel
             this.TypeArguments.AddRange(typeArgs);
         }
 
+        public override string ToString()
+        {
+            return $"<{base.ToString()}:{TypeName}>";
+        }
+
         public int ArrayRank { get; set; }
         public string TypeName { get; set; }
         public List<CodeTypeReference> TypeArguments { get; private set; }

@@ -564,7 +564,7 @@ namespace Pytocs.Core.TypeInference
             {
                 BaseList.Scope.AddLocalBinding(analyzer, m, newLibUrl("stdtypes"), newFunc(DataType.Int), BindingKind.METHOD).IsBuiltin = true;
             }
-            analyzer.GlobalTable.DataTypes.Add("List", newList());
+            analyzer.GlobalTable.DataTypes.Add("LuaList", newList());
         }
 
         Url numUrl()

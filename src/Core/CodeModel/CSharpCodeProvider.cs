@@ -32,7 +32,9 @@ namespace Pytocs.Core.CodeModel
         public void GenerateCodeFromExpression(CodeExpression csExp, TextWriter writer, CodeGeneratorOptions codeGeneratorOptions)
         {
             this.writer = new IndentingTextWriter(writer);
-            csExp.Accept(new CSharpExpressionWriter(this.writer));
+            var visitor = new CSharpExpressionWriter(this.writer);
+
+            csExp.Accept(visitor);
         }
 
         public void GenerateCodeFromType(CodeTypeDeclaration type, TextWriter writer, CodeGeneratorOptions codeGeneratorOptions)

@@ -37,6 +37,10 @@ namespace Pytocs.Core.Translate
         public const string NumericNamespace = "System.Numeric";
         public const string TasksNamespace = "System.Threading.Tasks";
 
+        public const string CoreNamespace = "Core";
+        
+        public const string TypeDynamic = "dynamic";
+
         private readonly Dictionary<Node, DataType> types;
         private readonly Stack<DataType> stackq;
         private readonly Dictionary<string, (string, string?)> pyToCsClasses;
@@ -65,8 +69,18 @@ namespace Pytocs.Core.Translate
             }
             else
             {
-                return (new CodeTypeReference(typeof(object)), null);
+                return (new CodeTypeReference(TypeDynamic), null);
             }
+        }
+
+        public (CodeTypeReference, ISet<string>?) TranslateTypeof(Identifier id, ClassType? classType)
+        {
+            if (!types.TryGetValue(id, out var dt))
+            {
+                dt = classType?.Scope.LookupAttributeType(id.Name);
+            }
+            
+            return dt != null ? Translate(dt) : (new CodeTypeReference(TypeDynamic), null);
         }
 
         /// <summary>
@@ -99,8 +113,8 @@ namespace Pytocs.Core.Translate
                 var (dtElem, nmElem) = Translate(list.eltType);
                 stackq.Pop();
                 return (
-                    new CodeTypeReference("List", dtElem),
-                    Join(nmElem, GenericCollectionNamespace));
+                    new CodeTypeReference("LuaList", dtElem),
+                    Join(nmElem, CoreNamespace));
             case SetType set:
                 stackq.Push(dt);
                 var (dtSetElem, nmSetElem) = Translate(set.ElementType);
@@ -110,7 +124,7 @@ namespace Pytocs.Core.Translate
                     Join(nmSetElem, GenericCollectionNamespace));
             case UnionType _:
                 return (
-                    new CodeTypeReference(typeof(object)),
+                    new CodeTypeReference(TypeDynamic),
                     null);
             case ComplexType _:
                 return (
@@ -165,8 +179,7 @@ namespace Pytocs.Core.Translate
         private (CodeTypeReference, ISet<string>?) TranslateInstance(InstanceType inst)
         {
             if (inst == DataType.Unknown)
-                return (new CodeTypeReference(typeof(object)
-                    ), null);
+                return (new CodeTypeReference(TypeDynamic), null);
             return this.Translate(inst.classType);
         }
 
@@ -276,7 +289,7 @@ namespace Pytocs.Core.Translate
 
         private static readonly Dictionary<string, (string, string?)> DefaultClassTranslations = new Dictionary<string, (string, string?)>
         {
-            { "None", ("object", null) },
+            { "None", (TypeDynamic/*"object"*/, null) },
             { "Unit", ("void", null) },
             { "NotImplementedError", (nameof(NotImplementedException), SystemNamespace) }
         };

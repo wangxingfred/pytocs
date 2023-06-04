@@ -34,9 +34,10 @@ namespace Pytocs.Core.Translate
 
         public static void Generate(CodeMemberMethod method, HashSet<string> globals)
         {
-            var gen = new LocalVariableGenerator(method.Parameters, method.Statements, globals);
-            gen.Analyze(new List<CodeStatement>(), method.Statements);
-            gen.Generate();
+            // TODO check this 注释掉是因为会额外多生成一个变量声明
+            // var gen = new LocalVariableGenerator(method.Parameters, method.Statements, globals);
+            // gen.Analyze(new List<CodeStatement>(), method.Statements);
+            // gen.Generate();
         }
 
         public static void Generate(List<CodeParameterDeclarationExpression>? parameters, List<CodeStatement> statements, HashSet<string> globals)
@@ -188,6 +189,11 @@ namespace Pytocs.Core.Translate
             return 0;
         }
 
+        public int VisitFor(CodeForStatement f)
+        {
+            throw new NotImplementedException();
+        }
+
         public int VisitForeach(CodeForeachStatement f)
         {
             AnalyzeExp(this.path, f.Collection);
@@ -206,6 +212,11 @@ namespace Pytocs.Core.Translate
         public int VisitLocalFunction(CodeLocalFunction _)
         {
             return 0;
+        }
+
+        public int VisitLambdaStatement(CodeLambdaStatement l)
+        {
+            throw new NotImplementedException();
         }
 
         public int VisitPostTestLoop(CodePostTestLoopStatement l)
@@ -312,10 +323,10 @@ namespace Pytocs.Core.Translate
                 }
             }
 
-            public void VisitAwait(CodeAwaitExpression awaitExp)
-            {
-                awaitExp.Expression.Accept(this);
-            }
+            // public void VisitAwait(CodeAwaitExpression awaitExp)
+            // {
+            //     awaitExp.Expression.Accept(this);
+            // }
 
             public void VisitBase(CodeBaseReferenceExpression baseExp)
             {

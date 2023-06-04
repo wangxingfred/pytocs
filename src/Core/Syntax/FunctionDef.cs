@@ -22,12 +22,24 @@ using System.Text;
 
 namespace Pytocs.Core.Syntax
 {
-    public class FunctionDef : Statement
+    public abstract class MethodStatement : Statement
     {
-        public readonly Identifier? cls;    // 所属类/模块
         public readonly Identifier name;
         public readonly List<Parameter> parameters;
         public readonly SuiteStatement body;
+
+        protected MethodStatement(Identifier name, List<Parameter> parameters, SuiteStatement body,
+            string filename, int start, int end) : base(filename, start, end)
+        {
+            this.name = name;
+            this.parameters = parameters;
+            this.body = body;
+        }
+    }
+
+    public class FunctionDef : MethodStatement
+    {
+        public readonly Identifier? cls;    // 所属类/模块
         public bool called = false;         //$ move to big state
         public readonly Identifier? vararg;
         public readonly Identifier? kwarg;
@@ -44,15 +56,12 @@ namespace Pytocs.Core.Syntax
             SuiteStatement body,
             bool isLocal, bool isInstanceMethod,
             string filename, int start, int end) 
-            : base(filename, start, end) 
+            : base(name, parameters, body, filename, start, end)
         {
-            this.name = name;
             this.cls = cls;
-            this.parameters = parameters;
             this.vararg = vararg;
             this.kwarg = kwarg;
             this.Annotation = annotation;
-            this.body = body;
             this.isLocal = isLocal;
             this.isInstanceMethod = isInstanceMethod;
         }
@@ -105,52 +114,73 @@ namespace Pytocs.Core.Syntax
         }
     }
 
-    // TODO 删除Lambda
-    public class Lambda : Exp
+    public class LambdaStatement : MethodStatement
     {
-        public readonly List<VarArg> args;
-        public readonly Exp Body;
-
-        public Lambda(List<VarArg> args, Exp body, string filename, int start, int end) : base(filename, start, end) 
+        public LambdaStatement(
+            Identifier name, List<Parameter> parameters, SuiteStatement body,
+            string filename, int start, int end
+            ) :
+            base(name, parameters, body, filename, start, end)
         {
-            this.Body = body;
-            this.args = args;
         }
 
-        public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
-        {
-            return v.VisitLambda(this, context);
-        }
-
-        public override T Accept<T>(IExpVisitor<T> v)
+        public override T Accept<T>(IStatementVisitor<T> v)
         {
             return v.VisitLambda(this);
         }
 
-        public override void Accept(IExpVisitor v)
+        public override void Accept(IStatementVisitor v)
         {
             v.VisitLambda(this);
         }
-
-        public override void Write(TextWriter writer)
-        {
-            writer.Write("lambda");
-            writer.Write(" ");
-            var sep = "";
-            foreach (var v in args)
-            {
-                writer.Write(sep);
-                sep = ",";
-                if (v.IsIndexed)
-                    writer.Write("*");
-                else if (v.IsKeyword)
-                    writer.Write("**");
-                if (v.Name != null)
-                    v.Name.Write(writer);
-            }
-            writer.Write(":");
-            writer.Write(" ");
-            this.Body.Write(writer);
-        }
     }
+
+    // public class Lambda : Exp
+    // {
+    //     // public readonly List<VarArg> args;
+    //     public readonly List<Parameter> args;
+    //     public readonly SuiteStatement Body;
+    //
+    //     public Lambda(List<Parameter> args, SuiteStatement body, string filename, int start, int end)
+    //         : base(filename, start, end)
+    //     {
+    //         this.Body = body;
+    //         this.args = args;
+    //     }
+    //
+    //     public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
+    //     {
+    //         return v.VisitLambda(this, context);
+    //     }
+    //
+    //     public override T Accept<T>(IExpVisitor<T> v)
+    //     {
+    //         return v.VisitLambda(this);
+    //     }
+    //
+    //     public override void Accept(IExpVisitor v)
+    //     {
+    //         v.VisitLambda(this);
+    //     }
+    //
+    //     public override void Write(TextWriter writer)
+    //     {
+    //         writer.Write("lambda");
+    //         writer.Write(" ");
+    //         var sep = "";
+    //         foreach (var v in args)
+    //         {
+    //             writer.Write(sep);
+    //             sep = ",";
+    //             // if (v.IsIndexed)
+    //             //     writer.Write("*");
+    //             // else if (v.IsKeyword)
+    //             //     writer.Write("**");
+    //             v.Id?.Write(writer);
+    //         }
+    //         writer.Write(":");
+    //         writer.Write(" ");
+    //         // this.Body.Write(writer);
+    //     }
+    // }
 }

@@ -1,4 +1,4 @@
-#region License
+﻿#region License
 //  Copyright 2015-2021 John Källén
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,27 +22,31 @@ using System.Threading.Tasks;
 
 namespace Pytocs.Core.CodeModel
 {
-    public class CodeVariableDeclarationStatement : CodeStatement
+    public class CodeArrayIndexerExpression : CodeExpression
     {
-        public CodeVariableDeclarationStatement(string typeName, string name)
+        public CodeArrayIndexerExpression(CodeExpression exp, CodeExpression[] indices)
         {
-            this.Type = new CodeTypeReference(typeName);
-            this.Name = name;
+            this.TargetObject = exp;
+            this.Indices = indices;
         }
 
-        public CodeVariableDeclarationStatement(CodeTypeReference type, string name)
+        public CodeArrayIndexerExpression(CodeExpression exp, CodeExpression index)
         {
-            this.Type = type;
-            this.Name = name;
+            this.TargetObject = exp;
+            this.Indices = new [] { index };
+        }
+        
+        public CodeExpression TargetObject { get; set; }
+        public CodeExpression[] Indices { get; set; }
+
+        public override void Accept(ICodeExpressionVisitor visitor)
+        {
+            visitor.VisitArrayIndexer(this);
         }
 
-        public CodeTypeReference Type { get; set; }
-        public string Name { get; set; }
-        public CodeExpression? InitExpression { get; set; }
-
-        public override T Accept<T>(ICodeStatementVisitor<T> visitor)
+        public override T Accept<T>(ICodeExpressionVisitor<T> visitor)
         {
-            return visitor.VisitVariableDeclaration(this);
+            return visitor.VisitArrayIndexer(this);
         }
     }
 }

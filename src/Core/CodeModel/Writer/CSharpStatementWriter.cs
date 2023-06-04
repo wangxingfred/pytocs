@@ -27,6 +27,7 @@ namespace Pytocs.Core.CodeModel
         private IndentingTextWriter writer;
         private CSharpExpressionWriter expWriter;
         private bool suppressSemi;
+        private bool suppressNewline;
 
         public CSharpStatementWriter(IndentingTextWriter writer)
         {
@@ -43,6 +44,19 @@ namespace Pytocs.Core.CodeModel
             }
         }
 
+        private void NewLine()
+        {
+            if (!suppressNewline)
+            {
+                writer.WriteLine();
+            }
+        }
+
+        private void TerminateLine()
+        {
+            NewLine();
+        }
+
         public int VisitAssignment(CodeAssignStatement ass)
         {
             ass.Destination.Accept(expWriter);
@@ -50,11 +64,6 @@ namespace Pytocs.Core.CodeModel
             ass.Source.Accept(expWriter);
             EndLineWithSemi();
             return 0;
-        }
-
-        private void TerminateLine()
-        {
-            writer.WriteLine();
         }
 
         public int VisitBreak(CodeBreakStatement b)
@@ -79,6 +88,35 @@ namespace Pytocs.Core.CodeModel
             return 0;
         }
 
+        public int VisitFor(CodeForStatement f)
+        {
+            // for (var i = 0; i < collection.Count; i = i + n)
+            // {
+            //     var value = collection[i];
+            // }
+
+            writer.Write("for (");
+
+            var oldSuppressNewline = suppressNewline;
+            suppressNewline = true;
+            f.Initializer.Accept(this);
+
+            f.Condition.Accept(expWriter);
+            writer.Write(";");
+
+            var oldSuppressSemi = suppressSemi;
+            suppressSemi = true;
+            f.Increment.Accept(this);
+
+            suppressSemi = oldSuppressSemi;
+            suppressNewline = oldSuppressNewline;
+
+            writer.Write(")");
+            WriteStatements(f.Statements);
+            NewLine();
+            return 0;
+        }
+
         public int VisitForeach(CodeForeachStatement f)
         {
             writer.Write("foreach");
@@ -92,7 +130,7 @@ namespace Pytocs.Core.CodeModel
             f.Collection.Accept(expWriter);
             writer.Write(")");
             WriteStatements(f.Statements);
-            writer.WriteLine();
+            NewLine();
             return 0;
         }
 
@@ -117,7 +155,7 @@ namespace Pytocs.Core.CodeModel
                 }
                 WriteStatements(cond.FalseStatements);
             }
-            writer.WriteLine();
+            NewLine();
             return 0;
         }
 
@@ -128,7 +166,22 @@ namespace Pytocs.Core.CodeModel
             writer.Write(fn.Name ?? "");
             CSharpTypeWriter.WriteMethodParameters(fn.Parameters, writer);
             WriteStatements(fn.Statements);
-            writer.WriteLine();
+            NewLine();
+            return 0;
+        }
+
+        public int VisitLambdaStatement(CodeLambdaStatement l)
+        {
+            var decl = l.Declaration;
+            expWriter.VisitTypeReference(decl.Type);
+            writer.Write(" ");
+            writer.WriteName(decl.Name);
+            writer.Write(" = ");
+            CSharpTypeWriter.WriteMethodParameters(l.Parameters, writer);
+            writer.Write(" =>");
+            WriteStatements(l.Statements);
+            writer.Write(";");
+            NewLine();
             return 0;
         }
 
@@ -146,7 +199,7 @@ namespace Pytocs.Core.CodeModel
                 writer.Write("finally");
                 WriteStatements(t.FinallyStatements);
             }
-            writer.WriteLine();
+            NewLine();
             return 0;
         }
 
@@ -188,7 +241,7 @@ namespace Pytocs.Core.CodeModel
             loop.Test!.Accept(expWriter);
             writer.Write(")");
             WriteStatements(loop.Body);
-            writer.WriteLine();
+            NewLine();
             return 0;
         }
 
@@ -254,7 +307,7 @@ namespace Pytocs.Core.CodeModel
             suppressSemi = old;
             writer.Write(")");
             WriteStatements(u.Statements);
-            writer.WriteLine();
+            NewLine();
             return 0;
         }
 
@@ -268,7 +321,8 @@ namespace Pytocs.Core.CodeModel
                 writer.Write(" = ");
                 decl.InitExpression.Accept(expWriter);
             }
-            writer.WriteLine(";");
+            writer.Write(";");
+            NewLine();
             return 0;
         }
 

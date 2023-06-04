@@ -31,10 +31,13 @@ namespace Pytocs.Core.Syntax
         void VisitContinue(ContinueStatement c);
         void VisitDel(DelStatement d);
         void VisitExec(ExecStatement exec);
-        void VisitExp(ExpStatement e); 
+        void VisitExp(ExpStatement e);
+        void VisitVariableDeclaration(VariableDeclarationStatement e);
+        void VisitVariableClassStatement(VariableClassStatement v);
         void VisitFor(ForStatement f);
         // void VisitFrom(FromStatement f);
         void VisitFuncdef(FunctionDef f);
+        void VisitLambda(LambdaStatement l);
         void VisitGlobal(GlobalStatement g);
         void VisitIf(IfStatement i);
         // void VisitImport(ImportStatement i);
@@ -61,9 +64,12 @@ namespace Pytocs.Core.Syntax
         T VisitDel(DelStatement d);
         T VisitExec(ExecStatement exec);
         T VisitExp(ExpStatement e);
+        T VisitVariableDeclaration(VariableDeclarationStatement v);
+        T VisitVariableClassStatement(VariableClassStatement v);
         T VisitFor(ForStatement f);
         // T VisitFrom(FromStatement f);
         T VisitFunctionDef(FunctionDef f);
+        T VisitLambda(LambdaStatement l);
         T VisitGlobal(GlobalStatement g);
         T VisitIf(IfStatement i);
         // T VisitImport(ImportStatement i);

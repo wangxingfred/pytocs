@@ -59,34 +59,34 @@ namespace Pytocs.Core.TypeInference
             return DataType.Unit;
         }
 
-        public DataType VisitLocalVarsExp(LocalVarsExp localVarsExp)
-        {
-            var index = 0;
-            var initializers = localVarsExp.Initializers;
-            foreach (var id in localVarsExp.Variables)
-            {
-                scope.AddLocalName(id.Name);
-
-                if (index < initializers.Count)
-                {
-                    var valueType = initializers[index].Accept(this);
-                    if (valueType is EmptyTableType)
-                    {
-                        valueType.Scope.Path += $".{id.Name}";
-                    }
-
-                    scope.BindByScope(analyzer, id, valueType);
-                }
-                else
-                {
-                    scope.BindByScope(analyzer, id, DataType.Unknown);
-                }
-
-                ++index;
-            }
-
-            return DataType.Unit;
-        }
+        // public DataType VisitLocalVarsExp(LocalVarsExp localVarsExp)
+        // {
+        //     var index = 0;
+        //     var initializers = localVarsExp.Initializers;
+        //     foreach (var id in localVarsExp.Variables)
+        //     {
+        //         scope.AddLocalName(id.Name);
+        //
+        //         if (index < initializers.Count)
+        //         {
+        //             var valueType = initializers[index].Accept(this);
+        //             if (valueType is EmptyTableType)
+        //             {
+        //                 valueType.Scope.Path += $".{id.Name}";
+        //             }
+        //
+        //             scope.BindByScope(analyzer, id, valueType);
+        //         }
+        //         else
+        //         {
+        //             scope.BindByScope(analyzer, id, DataType.Unknown);
+        //         }
+        //
+        //         ++index;
+        //     }
+        //
+        //     return DataType.Unit;
+        // }
 
         /// <summary>
         /// 判断id是否等于其文件名前缀
@@ -240,11 +240,11 @@ namespace Pytocs.Core.TypeInference
             }
         }
 
-        public DataType VisitAwait(AwaitExp e)
-        {
-            var dt = e.Exp.Accept(this);
-            return dt;
-        }
+        // public DataType VisitAwait(AwaitExp e)
+        // {
+        //     var dt = e.Exp.Accept(this);
+        //     return dt;
+        // }
 
         public DataType VisitFieldAccess(AttributeAccess a)
         {
@@ -421,7 +421,7 @@ namespace Pytocs.Core.TypeInference
 
         public void ApplyConstructor(InstanceType i, Application call, List<DataType> args)
         {
-            if (i.Scope.LookupAttributeType("__init__") is FunType initFunc && initFunc.Definition != null)
+            if (i.Scope.LookupAttributeType("_Ctor") is FunType initFunc && initFunc.Definition != null)
             {
                 initFunc.SelfType = i;
                 Apply(initFunc, args, null, null, null, call);
@@ -477,10 +477,10 @@ namespace Pytocs.Core.TypeInference
             {
                 pTypes.Add(funType.SelfType);
             }
-            else if (funType.Class != null)
-            {
-                pTypes.Add(funType.Class.GetInstance());
-            }
+            // else if (funType.Class != null)
+            // {
+            //     pTypes.Add(funType.Class.GetInstance());
+            // }
 
             if (pos != null)
             {
@@ -783,37 +783,41 @@ namespace Pytocs.Core.TypeInference
             var path = scope.ExtendPath(analyzer, c.name.Name);
             var classType = new ClassType(c.name.Name, scope, path);
             var baseTypes = new List<DataType>();
-            foreach (var @base in c.args)
+
+            if (c.args != null)
             {
-                var baseType = @base.DefaultValue!.Accept(this);
-                switch (baseType)
+                foreach (var @base in c.args)
                 {
-                case ClassType _:
-                    classType.AddSuper(baseType);
-                    break;
-                case UnionType ut:
-                    foreach (var parent in ut.types)
+                    var baseType = @base.DefaultValue!.Accept(this);
+                    switch (baseType)
                     {
-                        classType.AddSuper(parent);
+                    case ClassType _:
+                        classType.AddSuper(baseType);
+                        break;
+                    case UnionType ut:
+                        foreach (var parent in ut.types)
+                        {
+                            classType.AddSuper(parent);
+                        }
+
+                        break;
+                    default:
+                        analyzer.AddProblem(@base, @base + " is not a class");
+                        break;
                     }
 
-                    break;
-                default:
-                    analyzer.AddProblem(@base, @base + " is not a class");
-                    break;
+                    baseTypes.Add(baseType);
                 }
-
-                baseTypes.Add(baseType);
             }
 
             // XXX: Not sure if we should add "bases", "name" and "dict" here. They
             // must be added _somewhere_ but I'm just not sure if it should be HERE.
-            AddSpecialAttribute(classType.Scope, "__bases__", analyzer.TypeFactory.CreateTuple(baseTypes.ToArray()));
-            AddSpecialAttribute(classType.Scope, "__name__", DataType.Str);
-            AddSpecialAttribute(classType.Scope, "__dict__",
-                analyzer.TypeFactory.CreateDict(DataType.Str, DataType.Unknown));
-            AddSpecialAttribute(classType.Scope, "__module__", DataType.Str);
-            AddSpecialAttribute(classType.Scope, "__doc__", DataType.Str);
+            // AddSpecialAttribute(classType.Scope, "__bases__", analyzer.TypeFactory.CreateTuple(baseTypes.ToArray()));
+            // AddSpecialAttribute(classType.Scope, "__name__", DataType.Str);
+            // AddSpecialAttribute(classType.Scope, "__dict__",
+                // analyzer.TypeFactory.CreateDict(DataType.Str, DataType.Unknown));
+            // AddSpecialAttribute(classType.Scope, "__module__", DataType.Str);
+            // AddSpecialAttribute(classType.Scope, "__doc__", DataType.Str);
 
             // Bind ClassType to name here before resolving the body because the
             // methods need this type as self.
@@ -824,7 +828,7 @@ namespace Pytocs.Core.TypeInference
                 c.body.Accept(xform);
             }
 
-            return DataType.Unit;
+            return classType;
         }
 
         public DataType VisitComment(CommentStatement c)
@@ -959,6 +963,44 @@ namespace Pytocs.Core.TypeInference
             return new TupleType(elTypes.ToArray());
         }
 
+        public DataType VisitVariableDeclaration(VariableDeclarationStatement v)
+        {
+            var index = 0;
+            var initializers = v.Initializers;
+            foreach (var id in v.Variables)
+            {
+                scope.AddLocalName(id.Name);
+
+                if (index < initializers.Count)
+                {
+                    var valueType = initializers[index].Accept(this);
+                    if (valueType is EmptyTableType)
+                    {
+                        valueType.Scope.Path += $".{id.Name}";
+                    }
+
+                    scope.BindByScope(analyzer, id, valueType);
+                }
+                else
+                {
+                    scope.BindByScope(analyzer, id, DataType.Unknown);
+                }
+
+                ++index;
+            }
+
+            return DataType.Unit;
+        }
+
+        public DataType VisitVariableClassStatement(VariableClassStatement v)
+        {
+            var classType = v.ClassDef.Accept(this);
+
+            scope.AddLocalBinding(analyzer, v.Variable.Name, v.Variable, classType, BindingKind.SCOPE);
+
+            return classType;
+        }
+
         public DataType VisitExtSlice(List<Slice> e)
         {
             foreach (var d in e)
@@ -997,16 +1039,16 @@ namespace Pytocs.Core.TypeInference
             return iterType;
         }
 
-        public DataType VisitLambda(Lambda lambda)
-        {
-            var env = scope.Forwarding;
-            var fun = new FunType(lambda, env);
-            fun.Scope.Parent = this.scope;
-            fun.Scope.Path = scope.ExtendPath(analyzer, "{lambda}");
-            fun.SetDefaultTypes(ResolveList(lambda.args.Select(p => p.Test!))!);
-            analyzer.AddUncalled(fun);
-            return fun;
-        }
+        // public DataType VisitLambda(Lambda lambda)
+        // {
+        //     var env = scope.Forwarding;
+        //     var fun = new FunType(lambda, env);
+        //     fun.Scope.Parent = this.scope;
+        //     fun.Scope.Path = scope.ExtendPath(analyzer, "{lambda}");
+        //     fun.SetDefaultTypes(ResolveList(lambda.args.Select(p => p.Test!))!);
+        //     analyzer.AddUncalled(fun);
+        //     return fun;
+        // }
 
         public DataType VisitFunctionDef(FunctionDef f)
             // {
@@ -1071,8 +1113,7 @@ namespace Pytocs.Core.TypeInference
                         {
                             fun.Class = ct;
                         }
-
-                        if (b.Type is InstanceType it)
+                        else if (b.Type is InstanceType it)
                         {
                             fun.Class = it.classType;
                         }
@@ -1127,6 +1168,11 @@ namespace Pytocs.Core.TypeInference
             f.body.Accept(new TypeCollector(fun.Scope, this.analyzer));
 
             return DataType.Unit;
+        }
+
+        public DataType VisitLambda(LambdaStatement l)
+        {
+            throw new NotImplementedException();
         }
 
         private ClassType BindingToClass(Binding b)
@@ -1840,6 +1886,12 @@ namespace Pytocs.Core.TypeInference
 
         public DataType VisitUnary(UnaryExp u)
         {
+            // ReSharper disable once ConvertIfStatementToReturnStatement
+            if (u.Operator == Op.LuaLength)
+            {
+                return DataType.Int;
+            }
+
             return u.Exp.Accept(this);
         }
 
@@ -1880,29 +1932,29 @@ namespace Pytocs.Core.TypeInference
             return w.Body.Accept(this);
         }
 
-        public DataType VisitYieldExp(YieldExp y)
-        {
-            if (y.Expression != null)
-            {
-                return analyzer.TypeFactory.CreateList(y.Expression.Accept(this));
-            }
-            else
-            {
-                return DataType.None;
-            }
-        }
-
-        public DataType VisitYieldFromExp(YieldFromExp y)
-        {
-            if (y.Expression != null)
-            {
-                return analyzer.TypeFactory.CreateList(y.Expression.Accept(this));
-            }
-            else
-            {
-                return DataType.None;
-            }
-        }
+        // public DataType VisitYieldExp(YieldExp y)
+        // {
+        //     if (y.Expression != null)
+        //     {
+        //         return analyzer.TypeFactory.CreateList(y.Expression.Accept(this));
+        //     }
+        //     else
+        //     {
+        //         return DataType.None;
+        //     }
+        // }
+        //
+        // public DataType VisitYieldFromExp(YieldFromExp y)
+        // {
+        //     if (y.Expression != null)
+        //     {
+        //         return analyzer.TypeFactory.CreateList(y.Expression.Accept(this));
+        //     }
+        //     else
+        //     {
+        //         return DataType.None;
+        //     }
+        // }
 
         public DataType VisitYield(YieldStatement y)
         {

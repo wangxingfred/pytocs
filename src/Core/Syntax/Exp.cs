@@ -95,6 +95,7 @@ namespace Pytocs.Core.Syntax
                 Op.Not => "not ",
                 Op.Exp => " ** ",
                 Op.Assign => "=",
+                Op.LuaLength => "#",
                 _ => throw new NotSupportedException(string.Format("Unknown op {0}.", op))
             };
             }
@@ -899,99 +900,98 @@ namespace Pytocs.Core.Syntax
         }
     }
 
-    // TODO 删除AwaitExp
-    public class AwaitExp : Exp
-    {
-        public AwaitExp(Exp exp, string filename, int start, int end) :base(filename, start, end)
-        {
-            this.Exp = exp;
-        }
+    // public class AwaitExp : Exp
+    // {
+    //     public AwaitExp(Exp exp, string filename, int start, int end) :base(filename, start, end)
+    //     {
+    //         this.Exp = exp;
+    //     }
+    //
+    //     public Exp Exp { get; }
+    //
+    //     public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
+    //     {
+    //         return v.VisitAwait(this, context);
+    //     }
+    //
+    //     public override void Accept(IExpVisitor v)
+    //     {
+    //         v.VisitAwait(this);
+    //     }
+    //
+    //     public override T Accept<T>(IExpVisitor<T> v)
+    //     {
+    //         return v.VisitAwait(this);
+    //     }
+    //
+    //     public override void Write(TextWriter writer)
+    //     {
+    //         writer.Write("await");
+    //         writer.Write(" ");
+    //         this.Exp.Write(writer);
+    //     }
+    // }
 
-        public Exp Exp { get; }
-
-        public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
-        {
-            return v.VisitAwait(this, context);
-        }
-
-        public override void Accept(IExpVisitor v)
-        {
-            v.VisitAwait(this);
-        }
-
-        public override T Accept<T>(IExpVisitor<T> v)
-        {
-            return v.VisitAwait(this);
-        }
-
-        public override void Write(TextWriter writer)
-        {
-            writer.Write("await");
-            writer.Write(" ");
-            this.Exp.Write(writer);
-        }
-    }
-
-    public class YieldExp : Exp
-    {
-        public YieldExp(Exp? exp, string filename, int start, int end) : base(filename, start, end) { this.Expression = exp; }
-
-        public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
-        {
-            return v.VisitYieldExp(this, context);
-        }
-
-        public override T Accept<T>(IExpVisitor<T> v)
-        {
-            return v.VisitYieldExp(this);
-        }
-
-        public Exp? Expression { get; }
-
-        public override void Accept(IExpVisitor v)
-        {
-            v.VisitYieldExp(this);
-        }
-
-        public override void Write(TextWriter writer)
-        {
-            writer.Write("yield");
-            if (Expression != null)
-            {
-                writer.Write(" ");
-                Expression.Write(writer);
-        }
-    }
-    }
-
-    public class YieldFromExp : Exp
-    {
-        public YieldFromExp(Exp exp, string filename, int start, int end) : base(filename, start, end) { this.Expression = exp; }
-
-        public Exp Expression { get; }
-
-        public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
-        {
-            return v.VisitYieldFromExp(this, context);
-        }
-
-        public override T Accept<T>(IExpVisitor<T> v)
-        {
-            return v.VisitYieldFromExp(this);
-        }
-
-        public override void Accept(IExpVisitor v)
-        {
-            v.VisitYieldFromExp(this);
-        }
-
-        public override void Write(TextWriter writer)
-        {
-            writer.Write("from");
-            writer.Write(" ");
-            Expression.Write(writer);
-        }
-    }
+    // public class YieldExp : Exp
+    // {
+    //     public YieldExp(Exp? exp, string filename, int start, int end) : base(filename, start, end) { this.Expression = exp; }
+    //
+    //     public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
+    //     {
+    //         return v.VisitYieldExp(this, context);
+    //     }
+    //
+    //     public override T Accept<T>(IExpVisitor<T> v)
+    //     {
+    //         return v.VisitYieldExp(this);
+    //     }
+    //
+    //     public Exp? Expression { get; }
+    //
+    //     public override void Accept(IExpVisitor v)
+    //     {
+    //         v.VisitYieldExp(this);
+    //     }
+    //
+    //     public override void Write(TextWriter writer)
+    //     {
+    //         writer.Write("yield");
+    //         if (Expression != null)
+    //         {
+    //             writer.Write(" ");
+    //             Expression.Write(writer);
+    //     }
+    // }
+    // }
+    //
+    // public class YieldFromExp : Exp
+    // {
+    //     public YieldFromExp(Exp exp, string filename, int start, int end) : base(filename, start, end) { this.Expression = exp; }
+    //
+    //     public Exp Expression { get; }
+    //
+    //     public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
+    //     {
+    //         return v.VisitYieldFromExp(this, context);
+    //     }
+    //
+    //     public override T Accept<T>(IExpVisitor<T> v)
+    //     {
+    //         return v.VisitYieldFromExp(this);
+    //     }
+    //
+    //     public override void Accept(IExpVisitor v)
+    //     {
+    //         v.VisitYieldFromExp(this);
+    //     }
+    //
+    //     public override void Write(TextWriter writer)
+    //     {
+    //         writer.Write("from");
+    //         writer.Write(" ");
+    //         Expression.Write(writer);
+    //     }
+    // }
 
     public abstract class CompIter : Exp
     {
@@ -1346,56 +1346,56 @@ namespace Pytocs.Core.Syntax
         }
     }
 
-    public class LocalVarsExp : Exp
-    {
-        
-        public LocalVarsExp(List<Identifier> vars, List<Exp> inits, string filename, int start, int end)
-            : base(filename, start, end)
-        {
-            Variables = vars;
-            Initializers = inits;
-        }
-        public List<Identifier> Variables { get; }
-        
-        public List<Exp> Initializers { get; }
-        
-        public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
-        {
-            return v.VisitLocalVarsExp(this, context);
-        }
-
-        public override T Accept<T>(IExpVisitor<T> v)
-        {
-            return v.VisitLocalVarsExp(this);
-        }
-
-        public override void Accept(IExpVisitor v)
-        {
-            v.VisitLocalVarsExp(this);
-        }
-        
-        public override void Write(TextWriter writer)
-        {
-            writer.Write("var ");
-            string? step = null;
-            foreach (var variable in Variables)
-            {
-                writer.Write(step);
-                variable.Write(writer);
-                step = ",";
-            }
-            
-            writer.Write(" = ");
-            
-            step = null;
-            foreach (var init in Initializers)
-            {
-                writer.Write(step);
-                init.Write(writer);
-                step = ",";
-            }
-        }
-    }
+    // public class LocalVarsExp : Exp
+    // {
+    //
+    //     public LocalVarsExp(List<Identifier> vars, List<Exp> inits, string filename, int start, int end)
+    //         : base(filename, start, end)
+    //     {
+    //         Variables = vars;
+    //         Initializers = inits;
+    //     }
+    //     public List<Identifier> Variables { get; }
+    //
+    //     public List<Exp> Initializers { get; }
+    //
+    //     public override T Accept<T, C>(IExpVisitor<T, C> v, C context)
+    //     {
+    //         return v.VisitLocalVarsExp(this, context);
+    //     }
+    //
+    //     public override T Accept<T>(IExpVisitor<T> v)
+    //     {
+    //         return v.VisitLocalVarsExp(this);
+    //     }
+    //
+    //     public override void Accept(IExpVisitor v)
+    //     {
+    //         v.VisitLocalVarsExp(this);
+    //     }
+    //
+    //     public override void Write(TextWriter writer)
+    //     {
+    //         writer.Write("var ");
+    //         string? step = null;
+    //         foreach (var variable in Variables)
+    //         {
+    //             writer.Write(step);
+    //             variable.Write(writer);
+    //             step = ",";
+    //         }
+    //
+    //         writer.Write(" = ");
+    //
+    //         step = null;
+    //         foreach (var init in Initializers)
+    //         {
+    //             writer.Write(step);
+    //             init.Write(writer);
+    //             step = ",";
+    //         }
+    //     }
+    // }
 
     public class AssignExp : Exp
     {

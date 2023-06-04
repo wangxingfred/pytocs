@@ -104,7 +104,7 @@ namespace Pytocs.Core.Syntax
         // OP_SHR,
         // OP_AMP,
         // OP_BAR,
-        OP_CARET,
+        OP_CARET,   // ^
         // OP_TILDE,
 
         OP_LT,
@@ -146,7 +146,8 @@ namespace Pytocs.Core.Syntax
         // COLONEQ,
 
         False,
-        Class,
+        // Class,
+        ClassDefine,
         // Finally,
         // Is,
         Return,

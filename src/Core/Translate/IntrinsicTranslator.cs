@@ -41,21 +41,22 @@ namespace Pytocs.Core.Translate
             this.m = expTranslator.m;
             this.translators = new Dictionary<string, Func<Application, CodeExpression[], CodeExpression?>>
             {
-                { "isinstance", Translate_isinstance },
-                { "int", Translate_int },
-                { "list", Translate_list },
-                { "set", Translate_set },
-                { "dict", Translate_dict },
-                { "len", Translate_len },
-                { "sum", Translate_sum },
-                { "range", Translate_range },
-                { "filter", Translate_filter },
-                { "complex", Translate_complex },
-                { "float", Translate_float },
-                { "sorted", Translate_sorted },
-                { "str", Translate_str },
-                { "super", Translate_super },
-                { "enumerate", Translate_enumerate },
+                // { "isinstance", Translate_isinstance },
+                // { "int", Translate_int },
+                // { "list", Translate_list },
+                // { "set", Translate_set },
+                // { "dict", Translate_dict },
+                // { "len", Translate_len },
+                // { "sum", Translate_sum },
+                // { "range", Translate_range },
+                // { "filter", Translate_filter },
+                // { "complex", Translate_complex },
+                // { "float", Translate_float },
+                // { "sorted", Translate_sorted },
+                { "tostring", Translate_str },
+                { "print", Translate_print }
+                // { "super", Translate_super },
+                // { "enumerate", Translate_enumerate },
             };
         }
 
@@ -365,6 +366,11 @@ namespace Pytocs.Core.Translate
             }
         }
 
+        CodeExpression Translate_print(Application appl, CodeExpression[] args)
+        {
+            return m.ApplyMethod(m.TypeRefExpr("Console"), "WriteLine", args);
+        }
+
         /// <summary>
         /// Translates a `super(X,Y)` function call.
         /// </summary>
@@ -373,7 +379,9 @@ namespace Pytocs.Core.Translate
         /// <returns></returns>
         private CodeExpression Translate_super(Application appl, CodeExpression [] args)
         {
-            if (expTranslator.classDef != null && expTranslator.classDef.args.Count <= 1)
+            if (expTranslator.classDef != null &&
+                (expTranslator.classDef.args == null ||
+                 expTranslator.classDef.args.Count <= 1))
             {
                 return m.Base();
             }

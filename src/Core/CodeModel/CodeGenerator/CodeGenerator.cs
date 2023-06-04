@@ -1,4 +1,5 @@
 #region License
+
 //  Copyright 2015-2021 John Källén
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +13,7 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+
 #endregion
 
 using Pytocs.Core.Types;
@@ -38,28 +40,38 @@ namespace Pytocs.Core.CodeModel
             this.unt = unt;
             this.isInit = moduleName == "__init__";
             this.provider = new CSharpCodeProvider();
-            this.Scope = new List<CodeStatement>();  // dummy scope.
+            this.Scope = new List<CodeStatement>(); // dummy scope.
             this.CurrentNamespace = new CodeNamespace(modulePath);
             this.CurrentType = new CodeTypeDeclaration(moduleName)
             {
                 IsClass = true,
-                Attributes = MemberAttributes.Static | MemberAttributes.Public
+                Attributes = /*MemberAttributes.Static | */MemberAttributes.Public
             };
             CurrentNamespace.Types.Add(CurrentType);
             unt.Namespaces.Add(CurrentNamespace);
+
+            CurrentStatements = Scope;
         }
 
 
-        public List<CodeStatement> Scope { get;  private set; }
+        public List<CodeStatement> Scope { get; private set; }
         public CodeMember? CurrentMember { get; private set; }
         public List<CodeStatement>? CurrentStatements { get; private set; }
         public List<CodeCommentStatement>? CurrentComments { get; private set; }
         public CodeNamespace CurrentNamespace { get; set; }
         public CodeTypeDeclaration CurrentType { get; set; }
+        
+        public const string Singleton = "Singleton";
 
 
         public CodeExpression Access(CodeExpression exp, string fieldName)
         {
+            return new CodeFieldReferenceExpression(exp, fieldName);
+        }
+
+        public CodeExpression AccessSingletonField(CodeExpression exp, string fieldName)
+        {
+            exp = Access(exp, Singleton);
             return new CodeFieldReferenceExpression(exp, fieldName);
         }
 
@@ -101,19 +113,33 @@ namespace Pytocs.Core.CodeModel
             {
                 AddMemberWithComments(c);
             }
+
             c.Members.AddRange(valueGenerator());
             return c;
         }
 
         public CodeTypeDeclaration Class(
-            string name, 
-            IEnumerable<string> baseClasses, 
+            string name,
+            IEnumerable<string> baseClasses,
             Func<IEnumerable<CodeMemberField>> fieldGenerator,
             Action bodyGenerator)
         {
+            var baseTypes = baseClasses.Select(b => new CodeTypeReference(b)).ToArray();
+            
+            if (name == CurrentType.Name)
+            {
+                // 用于模块中定义同名类的情况
+                // TODO: 或许应该通过name去查找是否已经存在同名类？
+                
+                CurrentType.BaseTypes.AddRange(baseTypes);
+                
+                // TODO CurrentType.Members.AddRange(fieldGenerator());
+                return CurrentType;
+            }
+
             var oldScope = Scope;
             Scope = new List<CodeStatement>();
-
+            
             var c = new CodeTypeDeclaration
             {
                 IsClass = true,
@@ -129,7 +155,8 @@ namespace Pytocs.Core.CodeModel
             {
                 AddMemberWithComments(c);
             }
-            c.BaseTypes.AddRange(baseClasses.Select(b => new CodeTypeReference(b)).ToArray());
+
+            c.BaseTypes.AddRange(baseTypes);
             var old = CurrentType;
             var oldMethod = CurrentMember;
             var oldStmts = CurrentStatements;
@@ -152,16 +179,42 @@ namespace Pytocs.Core.CodeModel
             return c;
         }
 
-        private void AddMemberWithComments(CodeMember c)
+        public CodeTypeDeclaration? FindTypeDeclaration(string name)
+        {
+            return CurrentNamespace.Types.LastOrDefault(t => t.Name == name);
+        }
+
+        private void AddMemberWithComments(CodeMember c, CodeTypeDeclaration? type = null)
         {
             c.Comments.AddRange(Scope.OfType<CodeCommentStatement>());
             Scope.RemoveAll(s => s is CodeCommentStatement);
-            CurrentType.Members.Add(c);
+            
+            type ??= CurrentType;
+            type.Members.Add(c);
+        }
+
+        public bool HasMember(string name)
+        {
+            return CurrentType.Members.Any(m => m.Name == name);
+        }
+
+        public CodeMember? FindMember(string className, string memberName)
+        {
+            var c = FindTypeDeclaration(className);
+            return c?.Members.FirstOrDefault(m => m.Name == memberName);
         }
 
         public CodeAssignStatement Assign(CodeExpression lhs, CodeExpression rhs)
         {
             var ass = new CodeAssignStatement(lhs, rhs);
+            Scope.Add(ass);
+            return ass;
+        }
+
+        public CodeAssignStatement Assign(CodeExpression lhs, string field, CodeExpression rhs)
+        {
+            var access = new CodeFieldReferenceExpression(lhs, field);
+            var ass = new CodeAssignStatement(access, rhs);
             Scope.Add(ass);
             return ass;
         }
@@ -195,6 +248,7 @@ namespace Pytocs.Core.CodeModel
             Scope = old;
             return i;
         }
+
         public CodeStatement Foreach(CodeExpression exp, CodeExpression list, Action xlatLoopBody)
         {
             var c = new CodeForeachStatement(exp, list);
@@ -206,7 +260,71 @@ namespace Pytocs.Core.CodeModel
             return c;
         }
 
-        public CodeExpression Appl(CodeExpression fn, params CodeExpression [] args)
+        /// <summary>
+        /// 遍历集合的索引和元素
+        /// </summary>
+        /// <param name="varIndex"></param>
+        /// <param name="varItem"></param>
+        /// <param name="collection"></param>
+        /// <param name="xlatLoopBody"></param>
+        /// <returns></returns>
+        public CodeStatement ForIndexItem(CodeVariableReferenceExpression varIndex,
+            CodeVariableReferenceExpression? varItem, CodeExpression collection, Action xlatLoopBody)
+        {
+            var initializer = CodeVariableDeclarationStatement.CreateVar(varIndex.Name, Number(1));
+
+            var condition = new CodeBinaryOperatorExpression(varIndex, CodeOperatorType.Le,
+                new CodeFieldReferenceExpression(collection, "Count"));
+
+            var increment = new CodeAssignStatement(varIndex,
+                new CodeBinaryOperatorExpression(varIndex, CodeOperatorType.Add, Number(1)));
+
+            var c = new CodeForStatement(initializer, condition, increment);
+
+            Scope.Add(c);
+            var old = Scope;
+            Scope = c.Statements;
+
+            if (varItem != null)
+            {
+                var declarItem = CodeVariableDeclarationStatement.CreateVar(varItem.Name,
+                    new CodeArrayIndexerExpression(collection, varIndex));
+                Scope.Add(declarItem);
+            }
+
+            xlatLoopBody();
+            Scope = old;
+            return c;
+        }
+
+        /// <summary>
+        /// 遍历某个范围的整数
+        /// </summary>
+        /// <param name="variable"></param>
+        /// <param name="initValue"></param>
+        /// <param name="condition"></param>
+        /// <param name="incValue"></param>
+        /// <param name="xlatLoopBody"></param>
+        /// <returns></returns>
+        public CodeStatement ForRange(CodeVariableReferenceExpression variable, CodeExpression initValue,
+            CodeExpression condition, CodeExpression incValue, Action xlatLoopBody)
+        {
+            var initializer = CodeVariableDeclarationStatement.CreateVar(variable.Name, initValue);
+
+            var increment = new CodeAssignStatement(variable,
+                new CodeBinaryOperatorExpression(variable, CodeOperatorType.Add, incValue));
+
+            var c = new CodeForStatement(initializer, condition, increment);
+
+            Scope.Add(c);
+            var old = Scope;
+            Scope = c.Statements;
+            xlatLoopBody();
+            Scope = old;
+            return c;
+        }
+
+        public CodeExpression Appl(CodeExpression fn, params CodeExpression[] args)
         {
             return new CodeApplicationExpression(fn, args);
         }
@@ -240,10 +358,10 @@ namespace Pytocs.Core.CodeModel
 
         public void SetCurrentFunction(ICodeFunction fn)
         {
-            if (fn is CodeMember member)
-                this.CurrentMember = member;
-            this.CurrentStatements = fn.Statements;
-            this.CurrentComments = fn.Comments;
+            if (fn is CodeMember member) CurrentMember = member;
+            CurrentStatements = fn.Statements;
+            CurrentComments = fn.Comments;
+            Scope = fn.Statements!;
         }
 
         public void SetCurrentPropertyAccessor(
@@ -311,8 +429,8 @@ namespace Pytocs.Core.CodeModel
             return localFn;
         }
 
-        public  CodeMemberMethod StaticMethod(
-            string name, 
+        public CodeMemberMethod StaticMethod(
+            string name,
             IEnumerable<CodeParameterDeclarationExpression> parms,
             CodeTypeReference? retType,
             Action body)
@@ -330,12 +448,13 @@ namespace Pytocs.Core.CodeModel
             return method;
         }
 
-        public CodeMemberMethod LambdaMethod(IEnumerable<CodeParameterDeclarationExpression> parms, Action body)
+        public CodeLambdaStatement LambdaMethod(CodeVariableDeclarationStatement declaration,
+            IEnumerable<CodeParameterDeclarationExpression> parameters, Action body)
         {
-            var method = new CodeMemberMethod();
-            method.Parameters.AddRange(parms.ToArray());
-            GenerateMethodBody(method, body);
-            return method;
+            var codeLambda = new CodeLambdaStatement(declaration);
+            codeLambda.Parameters.AddRange(parameters);
+            GenerateMethodBody(codeLambda, body);
+            return codeLambda;
         }
 
         private void GenerateMethodBody(ICodeFunction fn, Action body)
@@ -345,7 +464,6 @@ namespace Pytocs.Core.CodeModel
             var oldStatements = CurrentStatements;
             var oldComments = CurrentComments;
             SetCurrentFunction(fn);
-            Scope = fn.Statements!;
             body();
             Scope = old;
             CurrentMember = oldMethod;
@@ -388,9 +506,7 @@ namespace Pytocs.Core.CodeModel
                 : name;
         }
 
-        public CodeMemberField Field(
-            CodeTypeReference fieldType,
-            string fieldName)
+        public CodeMemberField Field(CodeTypeReference fieldType, string fieldName)
         {
             var field = new CodeMemberField(fieldType, fieldName)
             {
@@ -399,12 +515,39 @@ namespace Pytocs.Core.CodeModel
             AddMemberWithComments(field);
             return field;
         }
-
-        public CodeMemberField Field(string fieldName, CodeExpression initializer)
+        
+        public CodeMemberField Field(CodeTypeReference fieldType, string fieldName,
+            CodeExpression? initializer, string? className = null)
         {
-            var field = new CodeMemberField(typeof(object), fieldName)
+            var field = new CodeMemberField(fieldType, fieldName)
             {
                 Attributes = MemberAttributes.Public,
+                InitExpression = initializer,
+            };
+
+            var classTypeDecl = className != null ? FindTypeDeclaration(className) : null;
+            AddMemberWithComments(field, classTypeDecl);
+
+            return field;
+        }
+
+        // public CodeMemberField Field(string fieldName, CodeExpression initializer)
+        // {
+        //     var field = new CodeMemberField(typeof(object), fieldName)
+        //     {
+        //         Attributes = MemberAttributes.Public,
+        //         InitExpression = initializer,
+        //     };
+        //     AddMemberWithComments(field);
+        //     return field;
+        // }
+
+        public CodeMemberField FieldStaticSingleton(CodeTypeReference typeReference)
+        {
+            var initializer = New(typeReference);
+            var field = new CodeMemberField(typeReference, Singleton)
+            {
+                Attributes = MemberAttributes.Public | MemberAttributes.Static,
                 InitExpression = initializer,
             };
             AddMemberWithComments(field);
@@ -416,10 +559,10 @@ namespace Pytocs.Core.CodeModel
             return new CodeArrayIndexerExpression(exp, indices);
         }
 
-        public CodeAwaitExpression Await(CodeExpression exp)
-        {
-            return new CodeAwaitExpression(exp);
-        }
+        // public CodeAwaitExpression Await(CodeExpression exp)
+        // {
+        //     return new CodeAwaitExpression(exp);
+        // }
 
 
         public CodeThrowExceptionStatement Throw(CodeExpression codeExpression)
@@ -446,14 +589,15 @@ namespace Pytocs.Core.CodeModel
             return new CodeLambdaExpression(args, stmts);
         }
 
-        public CodeExpression ListInitializer(CodeTypeReference elemType,  IEnumerable<CodeExpression> exprs)
+        public CodeExpression ListInitializer(CodeTypeReference elemType, IEnumerable<CodeExpression>? exprs)
         {
-            EnsureImport(Translate.TypeReferenceTranslator.GenericCollectionNamespace);
+            // EnsureImport(Translate.TypeReferenceTranslator.GenericCollectionNamespace);
+            EnsureImport(Translate.TypeReferenceTranslator.CoreNamespace);
             var list = new CodeObjectCreateExpression
             {
-                Type = new CodeTypeReference("List", elemType)
+                Type = new CodeTypeReference("LuaList", elemType)
             };
-            list.Initializers!.AddRange(exprs);
+            if (exprs != null) list.Initializers!.AddRange(exprs);
             return list;
         }
 
@@ -576,15 +720,21 @@ namespace Pytocs.Core.CodeModel
             return new CodeNumericLiteral(sNumber);
         }
 
+        public CodeNumericLiteral Number(int number)
+        {
+            return new CodeNumericLiteral(number.ToString());
+        }
+
         public CodePrimitiveExpression Prim(object? o)
         {
             if (o is long l)
             {
                 if (int.MinValue <= l && l < int.MaxValue)
                 {
-                    o = (int)l;
+                    o = (int) l;
                 }
             }
+
             return new CodePrimitiveExpression(o);
         }
 
@@ -610,7 +760,7 @@ namespace Pytocs.Core.CodeModel
             return new CodeTypeReference(typeName, genericArgs);
         }
 
-        public CodeAttributeDeclaration CustomAttr(CodeTypeReference typeRef, params CodeAttributeArgument [] args)
+        public CodeAttributeDeclaration CustomAttr(CodeTypeReference typeRef, params CodeAttributeArgument[] args)
         {
             return new CodeAttributeDeclaration
             {
@@ -646,7 +796,7 @@ namespace Pytocs.Core.CodeModel
             return u;
         }
 
-        public CodeValueTupleExpression ValueTuple(params CodeExpression [] exprs)
+        public CodeValueTupleExpression ValueTuple(params CodeExpression[] exprs)
         {
             return new CodeValueTupleExpression(exprs);
         }
@@ -679,6 +829,7 @@ namespace Pytocs.Core.CodeModel
                 this.Scope = prop.SetStatements;
                 generatePropertySetter();
             }
+
             AddMemberWithComments(prop);
             this.Scope = old;
             this.CurrentMember = oldMethod;
@@ -691,7 +842,7 @@ namespace Pytocs.Core.CodeModel
         public CodeLetClause Let(CodeExpression id, CodeExpression value)
         {
             return new CodeLetClause(id, value);
-    }
+        }
 
         public CodeWhereClause Where(CodeExpression e)
         {

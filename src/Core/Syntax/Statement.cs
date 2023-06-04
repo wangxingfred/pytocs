@@ -224,11 +224,66 @@ namespace Pytocs.Core.Syntax
         }
     }
 
+    public class VariableDeclarationStatement : Statement
+    {
+        public VariableDeclarationStatement(List<Identifier> vars, List<Exp> inits, string filename, int pos, int end)
+            : base(filename, pos, end)
+        {
+            Variables = vars;
+            Initializers = inits;
+        }
+
+        public List<Identifier> Variables { get; }
+
+        public List<Exp> Initializers { get; }
+
+        public override void Accept(IStatementVisitor v)
+        {
+            v.VisitVariableDeclaration(this);
+        }
+
+        public override T Accept<T>(IStatementVisitor<T> v)
+        {
+            return v.VisitVariableDeclaration(this);
+        }
+    }
+
+    public class VariableClassStatement : Statement
+    {
+        public VariableClassStatement(Identifier var, Statement classDef, string filename, int pos, int end)
+            : base(filename, pos, end)
+        {
+            Variable = var;
+            ClassDef = classDef;
+        }
+
+        public Identifier Variable { get; }
+        public Statement ClassDef { get; }
+
+        public override void Accept(IStatementVisitor v)
+        {
+            v.VisitVariableClassStatement(this);
+        }
+
+        public override T Accept<T>(IStatementVisitor<T> v)
+        {
+            return v.VisitVariableClassStatement(this);
+        }
+    }
+
     public class ForStatement : Statement
     {
+        public enum ForKind
+        {
+            Numeric,    // for i = 1, 10, 2 do ... end
+            Ipairs,     // for i,v in ipairs(t) do ... end
+            Pairs       // for k,v in pairs(t) do ... end
+        }
+
         public ForStatement(
             Exp exprs,
             Exp tests,
+            ForKind kind,
             SuiteStatement body,
             SuiteStatement? orelse,
             string filename,
@@ -236,10 +291,11 @@ namespace Pytocs.Core.Syntax
             int end)
             : base(filename, start, end)
         {
-            this.Exprs = exprs;
-            this.Tests = tests;
-            this.Body = body;
-            this.Else = orelse;
+            Exprs = exprs;
+            Tests = tests;
+            Kind = kind;
+            Body = body;
+            Else = orelse;
         }
 
         public Exp Exprs { get; } // var or vars
@@ -247,7 +303,7 @@ namespace Pytocs.Core.Syntax
         public SuiteStatement Body { get; }
         public SuiteStatement? Else { get; }
 
-        public bool IsNumeric { get; set; } // true means: for v = e1, e2, e3 do ...
+        public ForKind Kind { get; }
 
         public override void Accept(IStatementVisitor v)
         {

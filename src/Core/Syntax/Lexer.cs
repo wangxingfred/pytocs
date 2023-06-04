@@ -91,7 +91,7 @@ namespace Pytocs.Core.Syntax
             { "true", TokenType.True },
             { "util", TokenType.LuaUntil},
             { "while", TokenType.While },
-            
+
             // { "class", TokenType.Class },
             // { "finally", TokenType.Finally },
             // { "is", TokenType.Is },
@@ -424,6 +424,12 @@ namespace Pytocs.Core.Syntax
                         Advance();
                         sb.Append(ch);
                         break;
+                    }
+
+                    if ((sb.Equals("Class") || sb.Equals("BehaviourClass"))
+                        && _reader.MatchAndConsume(".Define"))
+                    {
+                        return Token(TokenType.ClassDefine, sb.ToString());
                     }
                     return LookupId();
                 case State.Plus:
@@ -1068,7 +1074,7 @@ namespace Pytocs.Core.Syntax
                 case State.Dot2:
                     switch (ch)
                     {
-                    case '.': return EatChToken(TokenType.LuaEllipsis);
+                    case '.': return EatChToken(TokenType.LuaEllipsis, "params");
                     default: return Token(TokenType.LuaConcat);
                     }
                 case State.Colon:

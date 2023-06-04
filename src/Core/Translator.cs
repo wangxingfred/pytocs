@@ -48,7 +48,7 @@ namespace Pytocs.Core
             ILogger logger)
         {
             this.nmspace = nmspace;
-            this.moduleName = moduleName;
+            this.moduleName = Path.GetFileNameWithoutExtension(moduleName);
             this.postProcessors = postProcessors;
             this.fs = fs;
             this.logger = logger;
@@ -110,8 +110,8 @@ namespace Pytocs.Core
             try
             {
                 var unt = new CodeCompileUnit();
-                var gen = new CodeGenerator(unt, nmspace, Path.GetFileNameWithoutExtension(moduleName));
-                var xlt = new ModuleTranslator(types, gen);
+                var gen = new CodeGenerator(unt, nmspace, moduleName);
+                var xlt = new ModuleTranslator(types, gen, moduleName);
                 xlt.Translate(stm);
                 unt = PostProcess(unt);
                 var pvd = new CSharpCodeProvider();

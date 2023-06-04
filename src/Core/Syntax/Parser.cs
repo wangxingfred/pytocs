@@ -22,8 +22,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Pytocs.Core.Syntax
 {
@@ -349,6 +347,9 @@ yield_expr: 'yield' [testlist]
         private readonly bool catchExceptions;
         private readonly ILogger logger;
 
+        private int lambdaId = 0;
+        private readonly Stack<List<Statement>> stmtsStack = new ();
+
         public Parser(string filename, ILexer lexer, bool catchExceptions = false, ILogger? logger = null)
         {
             this.filename = filename;
@@ -376,26 +377,6 @@ yield_expr: 'yield' [testlist]
 
         public void ParseEval()
         {
-        }
-
-        private bool PeekAndDiscard(TokenType tok)
-        {
-            if (lexer.Peek().Type != tok)
-                return false;
-
-            lexer.Get();
-            return true;
-        }
-
-        private bool PeekAndDiscard(TokenType tok, out Token token)
-        {
-            if (!Peek(tok, out token))
-            {
-                return false;
-            }
-
-            token = lexer.Get();
-            return true;
         }
 
         private Exception Error(string str, params object[] args)
@@ -502,6 +483,32 @@ eval_input: testlist NEWLINE* ENDMARKER
             }
         }
 
+        private bool PeekAndDiscard(TokenType tok)
+        {
+            if (lexer.Peek().Type != tok)
+                return false;
+
+            lexer.Get();
+            return true;
+        }
+
+        private bool PeekAndDiscard(TokenType tok, out Token token)
+        {
+            if (!Peek(tok, out token))
+            {
+                return false;
+            }
+
+            token = lexer.Get();
+            return true;
+        }
+
+        private Token? PeekAndGet(TokenType tokenType)
+        {
+            var t = lexer.Peek();
+            return t.Type == tokenType ? lexer.Get() : null;
+        }
+
         private Token Expect(TokenType tokenType)
         {
             var t = lexer.Peek();
@@ -599,7 +606,7 @@ eval_input: testlist NEWLINE* ENDMARKER
             }
 
             // Debug.Print("  Parsing {0}", fnName.Name);
-            List<Parameter> parms = parameters();
+            var parms = parameters();
             Exp? annotation = null;
             // if (PeekAndDiscard(TokenType.LARROW))
             // {
@@ -891,18 +898,18 @@ eval_input: testlist NEWLINE* ENDMARKER
             return new Identifier((string) token.Value!, filename, token.Start, token.End);
         }
 
-        private readonly static HashSet<TokenType> compoundStatement_first = new HashSet<TokenType>()
-        {
-            TokenType.If, TokenType.While, TokenType.For, /*TokenType.Try, TokenType.With,*/
-            TokenType.LuaFunction, TokenType.Class, /*TokenType.AT, TokenType.Async,*/ TokenType.LuaRepeat
-        };
+        // private readonly static HashSet<TokenType> compoundStatement_first = new HashSet<TokenType>()
+        // {
+        //     TokenType.If, TokenType.While, TokenType.For, /*TokenType.Try, TokenType.With,*/
+        //     TokenType.LuaFunction, TokenType.Class, /*TokenType.AT, TokenType.Async,*/ TokenType.LuaRepeat
+        // };
 
-        private readonly static HashSet<TokenType> augassign_set = new HashSet<TokenType>()
-        {
-            // TokenType.ADDEQ, TokenType.SUBEQ, TokenType.MULEQ, TokenType.DIVEQ, TokenType.MODEQ,
-            // TokenType.ANDEQ, TokenType.OREQ, TokenType.XOREQ, TokenType.SHLEQ, TokenType.SHREQ,
-            // TokenType.EXPEQ, TokenType.IDIVEQ, TokenType.ATEQ
-        };
+        // private readonly static HashSet<TokenType> augassign_set = new HashSet<TokenType>()
+        // {
+        //     // TokenType.ADDEQ, TokenType.SUBEQ, TokenType.MULEQ, TokenType.DIVEQ, TokenType.MODEQ,
+        //     // TokenType.ANDEQ, TokenType.OREQ, TokenType.XOREQ, TokenType.SHLEQ, TokenType.SHREQ,
+        //     // TokenType.EXPEQ, TokenType.IDIVEQ, TokenType.ATEQ
+        // };
 
         private readonly static HashSet<TokenType> stmt_follow = new HashSet<TokenType>()
         {
@@ -927,9 +934,8 @@ eval_input: testlist NEWLINE* ENDMARKER
             {
                 if (!catchExceptions)
                     throw;
-                logger.Error(ex,
-                    $"({this.filename},{lexer.LineNumber}): parser error. Please report on https://github.com/uxmal/pytocs");
-                SkipUntil(TokenType.COMMENT, TokenType.LuaFunction, TokenType.Class);
+                logger.Error(ex, $"({filename},{lexer.LineNumber}): parser error");
+                SkipUntil(TokenType.COMMENT, TokenType.LuaFunction, TokenType.ClassDefine/*TokenType.Class*/);
                 return new List<Statement>
                 {
                     new CommentStatement(this.filename, 0, 0)
@@ -943,7 +949,9 @@ eval_input: testlist NEWLINE* ENDMARKER
         //simple_stmt: small_stmt (';' small_stmt)* [';'] NEWLINE
         public List<Statement> simple_stmt()
         {
-            List<Statement> stmts = new List<Statement>();
+            var stmts = new List<Statement>();
+            stmtsStack.Push(stmts);
+
             var s = small_stmt();
             if (s != null)
             {
@@ -956,6 +964,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                     break;
                 if (PeekAndDiscard(TokenType.NEWLINE))
                 {
+                    Debug.Assert(stmts == stmtsStack.Pop());
                     return new List<Statement>
                     {
                         new SuiteStatement(stmts, filename, stmts[0].Start, stmts.Last().End)
@@ -968,6 +977,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                     stmts.Add(s);
                 }
             }
+            Debug.Assert(stmts == stmtsStack.Pop());
 
             string? comment = null;
             if (!Peek(TokenType.EOF))
@@ -982,7 +992,7 @@ eval_input: testlist NEWLINE* ENDMARKER
 
             if (stmts.Count == 0)
             {
-                return new List<Statement>();
+                return stmts;
             }
             else
             {
@@ -1040,7 +1050,7 @@ eval_input: testlist NEWLINE* ENDMARKER
 
         //expr_stmt: testlist_star_expr (annasign | augassign (yield_expr|testlist)) |
         //                     ('=' (yield_expr|testlist_star_expr))*)
-        public Statement expr_stmt()
+        public Statement? expr_stmt()
         {
             // Hack to deal with print statement from python 2.*
             // if (Peek(TokenType.ID, "print"))
@@ -1048,6 +1058,7 @@ eval_input: testlist NEWLINE* ENDMARKER
             //     return print_stmt();
             // }
             var lhs = testlist_star_expr();
+            if (lhs == null) return null;
             // if (Peek(TokenType.COLON))
             // {
             //     var (a, i) = annasign();
@@ -1070,12 +1081,12 @@ eval_input: testlist NEWLINE* ENDMARKER
                 var rhsStack = new Stack<Exp>();
                 while (PeekAndDiscard(TokenType.EQ))
                 {
-                    Exp r;
+                    Exp? r;
                     // if (Peek(TokenType.Yield))
                     //     r = yield_expr();
                     // else
                     r = testlist_star_expr();
-                    rhsStack.Push(r);
+                    rhsStack.Push(r!);
                 }
 
                 if (rhsStack.Count > 0)
@@ -1156,7 +1167,7 @@ eval_input: testlist NEWLINE* ENDMARKER
         // }
 
         //testlist_star_expr: (test|star_expr) (',' (test|star_expr))* [',']
-        public Exp testlist_star_expr()
+        public Exp? testlist_star_expr()
         {
             List<Exp> exprs = new();
             bool forceSingletonTuple = false;
@@ -1177,6 +1188,8 @@ eval_input: testlist NEWLINE* ENDMARKER
                 if (Peek(stmt_follow))
                     break;
             }
+
+            if (exprs.Count == 0) return null;
 
             return exprs.Count == 1 && !forceSingletonTuple ? exprs[0] : new ExpList(exprs, filename, 0, 0);
         }
@@ -1507,9 +1520,14 @@ eval_input: testlist NEWLINE* ENDMARKER
                 } while (PeekAndDiscard(TokenType.COMMA));
             }
 
+            if (rhs.Count == 0 && Peek(TokenType.ClassDefine))
+            {
+                var classDef = classdef();
+                return new VariableClassStatement(lhs[0], classDef, filename, posStart, classDef.End);
+            }
+
             var posEnd = rhs.Count > 0 ? rhs.Last().End : lhs.Last().End;
-            var exp = new LocalVarsExp(lhs, rhs, filename, posStart, posEnd);
-            return new ExpStatement(exp, filename, posStart, posEnd);
+            return new VariableDeclarationStatement(lhs, rhs, filename, posStart, posEnd);
 
             // var lhs = testlist_star_expr(lhsNames);
             // {
@@ -1593,7 +1611,7 @@ eval_input: testlist NEWLINE* ENDMARKER
             // case TokenType.Try: return try_stmt();
             // case TokenType.With: return with_stmt();
             case TokenType.LuaFunction: return funcdef();
-            case TokenType.Class: return classdef();
+            case TokenType.ClassDefine: return new List<Statement>() { classdef() };
             // case TokenType.AT: return decorated();
             // case TokenType.Async: return async_stmt();
             default: return null; //throw Unexpected();
@@ -1715,7 +1733,33 @@ eval_input: testlist NEWLINE* ENDMARKER
                 //     es = suite();
                 //     posEnd = es.End;
                 // }
-                var f = new ForStatement(ell, tl, body, es, filename, posStart, posEnd);
+
+                ForStatement.ForKind kind;
+                Exp dst;
+                if (tl is Application appl && appl.Function is Identifier func)
+                {
+                    var funcName = func.Name;
+                    if (funcName == "ipairs")
+                    {
+                        kind = ForStatement.ForKind.Ipairs;
+                    }
+                    else if (funcName == "pairs")
+                    {
+                        kind = ForStatement.ForKind.Pairs;
+                    }
+                    else
+                    {
+                        throw new Exception($"invalid for statement: for {ell} in {tl}");
+                    }
+
+                    dst = appl.Args[0].DefaultValue!;
+                }
+                else
+                {
+                    throw new Exception($"invalid for statement: for {ell} in {tl}");
+                }
+
+                var f = new ForStatement(ell, dst, kind, body, es, filename, posStart, posEnd);
                 return new List<Statement> { f };
             }
             else if (t.Type == TokenType.EQ) // for i = 1, 10, 2 do ...
@@ -1726,10 +1770,7 @@ eval_input: testlist NEWLINE* ENDMARKER
                 var end = Expect(TokenType.LuaEnd);
                 var posEnd = end.End;
                 SuiteStatement? es = null;
-                var f = new ForStatement(ell, tl, body, es, filename, posStart, posEnd)
-                {
-                    IsNumeric = true
-                };
+                var f = new ForStatement(ell, tl, ForStatement.ForKind.Numeric, body, es, filename, posStart, posEnd);
                 return new List<Statement> { f };
             }
             else
@@ -1875,7 +1916,9 @@ eval_input: testlist NEWLINE* ENDMARKER
         //suite: simple_stmt | NEWLINE INDENT stmt+ DEDENT
         public SuiteStatement suite()
         {
-            List<Statement> stmts = new List<Statement>();
+            var stmts = new List<Statement>();
+            stmtsStack.Push(stmts);
+
             if (Peek(TokenType.COMMENT))
             {
                 stmts.Add(comment_stmt());
@@ -1918,6 +1961,8 @@ eval_input: testlist NEWLINE* ENDMARKER
                 stmts.AddRange(stmt);
             }
 
+            Debug.Assert(stmts == stmtsStack.Pop());
+
             if (stmts.Count == 0)
             {
                 return new SuiteStatement(stmts, filename, 0, 0);
@@ -1931,8 +1976,8 @@ eval_input: testlist NEWLINE* ENDMARKER
         {
             while (PeekAndDiscard(TokenType.COMMENT))
                 ;
-            // if (Peek(TokenType.Lambda))
-            //     return lambdef();
+            if (Peek(TokenType.LuaFunction))
+                return lambda();
             var consequent = or_test();
             if (consequent == null)
                 return consequent;
@@ -1972,6 +2017,25 @@ eval_input: testlist NEWLINE* ENDMARKER
             // if (Peek(TokenType.Lambda))
             //     return lambdef_nocond();
             return or_test();
+        }
+
+
+        public Identifier lambda()
+        {
+            // 解析出匿名函数
+            var posStart = Expect(TokenType.LuaFunction).Start;
+            var parms = parameters();
+            var s = suite();
+            var posEnd = Expect(TokenType.LuaEnd).End;
+
+            // 生成一个唯一的函数名
+            var name = new Identifier($"lambda__{lambdaId++}", filename, posStart, posEnd);
+
+            // 创建匿名函数声明，并加入到当前的语句块中
+            var lambda = new LambdaStatement(name, parms, s, filename, posStart, posEnd);
+            stmtsStack.Peek().Add(lambda);
+
+            return name;
         }
 
         //lambdef: 'lambda' [varargslist] ':' test
@@ -2138,8 +2202,7 @@ eval_input: testlist NEWLINE* ENDMARKER
         }
 
         //expr: xor_expr ('|' xor_expr)*
-        public Exp? ex
-        --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------pr()
+        public Exp? expr()
         {
             // var e = xor_expr();
             // if (e == null)
@@ -2298,6 +2361,10 @@ eval_input: testlist NEWLINE* ENDMARKER
             case TokenType.OP_MINUS:
                 posStart = lexer.Get().Start;
                 op = Op.Sub;
+                break;
+            case TokenType.LuaLength:
+                posStart = lexer.Get().Start;
+                op = Op.LuaLength;
                 break;
             // case TokenType.OP_TILDE: posStart = lexer.Get().Start; op = Op.Complement; break;
             default: return power();
@@ -2808,25 +2875,52 @@ eval_input: testlist NEWLINE* ENDMARKER
         }
 
         //classdef: 'class' NAME ['(' [arglist] ')'] ':' suite
-        public List<Statement> classdef()
+
+        // ClassDefine: local cls = ClassDefine(name, super)
+        public Statement classdef()
         {
-            var posStart = Expect(TokenType.Class).Start;
-            var name = id();
-            Debug.Print("Parsing class {0}", name.Name);
-            var args = new List<Argument>();
-            if (!Peek(TokenType.COLON))
+            var posStart = Expect(TokenType.ClassDefine).Start;
+
+            Expect(TokenType.LPAREN);
+            var tokenName = Expect(TokenType.STRING);
+            var tokenSuper = PeekAndGet(TokenType.ID);
+
+            var isAbstract = false;
+            if (PeekAndGet(TokenType.True) != null)
             {
-                var token = Expect(TokenType.LPAREN);
-                args = arglist(name, token.Start).Args;
-                Expect(TokenType.RPAREN);
+                isAbstract = true;
+            } else
+            {
+                PeekAndDiscard(TokenType.False);
             }
 
-            Expect(TokenType.COLON);
-            var body = suite();
-            return new List<Statement>
+            var end = Expect(TokenType.RPAREN);
+
+            // var args = new List<Argument>();
+            // if (!Peek(TokenType.COLON))
+            // {
+            //     var token = Expect(TokenType.LPAREN);
+            //     args = arglist(name, token.Start).Args;
+            //     Expect(TokenType.RPAREN);
+            // }
+
+            // Expect(TokenType.COLON);
+            // var body = suite();
+            // return new List<Statement>
+            // {
+            //     new ClassDef(className, args, body, filename, posStart, body.End)
+            // };
+            Debug.Print("Parsing class {0}", tokenName.Value);
+            var name = new Identifier(((Str) tokenName.Value!).Value!, filename, tokenName.Start, tokenName.End);
+            Identifier? super = null;
+            // ReSharper disable once InvertIf
+            if (tokenSuper != null)
             {
-                new ClassDef(name, args, body, filename, posStart, body.End)
-            };
+                var t = tokenSuper.Value!;
+                super = new Identifier((string) t.Value!, filename, t.Start, t.End);
+            }
+
+            return new ClassDef(name, super, isAbstract, filename, posStart, end.End);
         }
 
         public Identifier id()

@@ -46,9 +46,10 @@ namespace Pytocs.Acceptance
             var par = new Parser("foo.py", lex);
             var stm = par.Parse();
             var unt = new CodeCompileUnit();
-            var gen = new CodeGenerator(unt, "test", "testModule");
+            var moduleName = "testModule";
+            var gen = new CodeGenerator(unt, "test", moduleName);
             var types = new TypeReferenceTranslator(new Dictionary<Node, DataType>());
-            var xlt = new ModuleTranslator(types, gen);
+            var xlt = new ModuleTranslator(types, gen, moduleName);
             xlt.Translate(stm);
 
             var pvd = new CSharpCodeProvider();

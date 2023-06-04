@@ -1,4 +1,5 @@
 #region License
+
 //  Copyright 2015-2021 John Källén
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +13,7 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+
 #endregion
 
 using Pytocs.Core.CodeModel;
@@ -41,7 +43,7 @@ namespace Pytocs.UnitTests.Translate
             var gen = new CodeGenerator(unt, "test", "testModule");
             var sym = new SymbolGenerator();
             var types = new TypeReferenceTranslator(new Dictionary<Node, DataType>());
-            var xlt = new StatementTranslator(null, types, gen, sym, new HashSet<string>());
+            var xlt = new StatementTranslator(types, gen, sym, new HashSet<string>());
             stm[0].Accept(xlt);
             var pvd = new CSharpCodeProvider();
             var writer = new StringWriter();
@@ -51,16 +53,18 @@ namespace Pytocs.UnitTests.Translate
                 {
                     writer.WriteLine("using {0};", SanitizeNamespace(imp.Namespace, gen));
                 }
+
                 foreach (CodeTypeDeclaration type in ns.Types)
                 {
                     pvd.GenerateCodeFromType(
                         type,
                         writer,
-                    new CodeGeneratorOptions
-                    {
-                    });
+                        new CodeGeneratorOptions
+                        {
+                        });
                 }
             }
+
             return writer.ToString();
         }
 
@@ -74,8 +78,9 @@ namespace Pytocs.UnitTests.Translate
             var gen = new CodeGenerator(unt, "test", "testModule");
             var sym = new SymbolGenerator();
             var types = new TypeReferenceTranslator(new Dictionary<Node, DataType>());
-            var xlt = new StatementTranslator(null, types, gen, sym, new HashSet<string>());
-            stm[0].Accept(xlt);
+            var xlt = new StatementTranslator(types, gen, sym, new HashSet<string>());
+            var stm0 = stm[0];
+            stm0.Accept(xlt);
             var pvd = new CSharpCodeProvider();
             var writer = new StringWriter();
             foreach (CodeNamespace ns in unt.Namespaces)
@@ -90,6 +95,7 @@ namespace Pytocs.UnitTests.Translate
                     writer.WriteLine();
                 }
             }
+
             return writer.ToString();
         }
 
@@ -102,22 +108,24 @@ namespace Pytocs.UnitTests.Translate
         {
             return string.Join(".",
                 nmspace.Split('.')
-                .Select(n => gen.EscapeKeywordName(n)));
+                    .Select(n => gen.EscapeKeywordName(n)));
         }
 
         [Fact]
         public void Lvt_IfElseDeclaration()
         {
-            var pySrc =
-@"def foo():
-    if self.x:
+            const string luaSrc =
+@"function foo()
+    local y
+    if self.x then
         y = 3
-    else:
+    else
         y = 9
+    end
     self.y = y * 2
-";
+end";
 
-            var sExp =
+            const string sExp =
 @"public static object foo() {
     object y;
     if (this.x) {
@@ -129,18 +137,20 @@ namespace Pytocs.UnitTests.Translate
 }
 
 ";
-            Assert.Equal(sExp, XlatMember(pySrc).ToString());
+            Assert.Equal(sExp, XlatMember(luaSrc));
         }
 
         [Fact]
         public void Lvi_ForceStandAloneDefinition()
         {
-            var pySrc =
-@"def foo():
-    if self.x:
+            var luaSrc =
+@"function foo()
+    local x
+    if self.x then
         x = self.x
+    end
     x = x + 1
-";
+end";
 
             var sExp =
 @"public static object foo() {
@@ -152,19 +162,20 @@ namespace Pytocs.UnitTests.Translate
 }
 
 ";
-            Assert.Equal(sExp, XlatMember(pySrc).ToString());
+            Assert.Equal(sExp, XlatMember(luaSrc));
         }
 
         [Fact]
         public void Lvi_LocalRedefinition()
         {
-            var pySrc =
-@"def foo():
-    if self.x:
-        x = self.x
+            var luaSrc =
+@"function foo()
+    if self.x then
+        local x = self.x
         x = x + 1
         self.x = x
-";
+    end
+end";
 
             var sExp =
 @"public static object foo() {
@@ -176,19 +187,20 @@ namespace Pytocs.UnitTests.Translate
 }
 
 ";
-            Assert.Equal(sExp, XlatMember(pySrc).ToString());
+            Assert.Equal(sExp, XlatMember(luaSrc));
         }
 
         [Fact]
         public void Lvi_LocalInBranch()
         {
-            var pySrc =
-@"def foo():
-    if self.x:
-        x = self.x
-        self.x = None
+            var luaSrc =
+@"function foo()
+    if self.x then
+        local x = self.x
+        self.x = nil
         x.foo()
-";
+    end
+end";
 
             var sExp =
 @"public static object foo() {
@@ -200,46 +212,49 @@ namespace Pytocs.UnitTests.Translate
 }
 
 ";
-            Assert.Equal(sExp, XlatMember(pySrc).ToString());
+            Assert.Equal(sExp, XlatMember(luaSrc));
         }
 
         [Fact]
         public void Lvi_ModifyParameter()
         {
-            var pySrc =
-@"def foo(frog):
-    if frog is None:
+            var luaSrc =
+@"function foo(frog)
+    if frog == nil then
         frog = 'default'
+    end
     bar(frog)
-";
+end";
 
             var sExp =
 @"public static object foo(object frog) {
-    if (frog is null) {
+    if (frog == null) {
         frog = ""default"";
     }
     bar(frog);
 }
 
 ";
-            Assert.Equal(sExp, XlatMember(pySrc).ToString());
+            Assert.Equal(sExp, XlatMember(luaSrc));
         }
 
         [Fact]
         public void Liv_ChainedIfElses()
         {
-            var pySrc =
-@"def fn(arg):
-    if arg == 1:
+            var luaSrc =
+@"function fn(arg)
+    local result
+    if arg == 1 then
         result = 'one'
-    elif arg == 2:
+    elseif arg == 2 then
         result = 'two'
-    elif arg == 3:
+    elseif arg == 3 then
         result = 'three'
-    else:
+    else
         result = 'many'
+    end
     return result
-";
+end";
             var sExp =
 @"public static object fn(object arg) {
     object result;
@@ -256,22 +271,26 @@ namespace Pytocs.UnitTests.Translate
 }
 
 ";
-            Assert.Equal(sExp, XlatMember(pySrc).ToString());
+            Assert.Equal(sExp, XlatMember(luaSrc));
         }
 
         [Fact(DisplayName = nameof(Lv_AssignmentExpression))]
         public void Lv_AssignmentExpression()
         {
-            var pySrc = @"
-def foo():
-    while chunk := read(256):
+            var pySrc =
+@"function foo()
+    local chunk = read(256)
+    while chunk ~= nil do
         process(chunk)
-";
+        chunk = read(256)
+    end
+end";
             var sExp =
 @"public static object foo() {
-    object chunk;
-    while ((chunk = read(256)) != null) {
+    var chunk = read(256);
+    while (chunk != null) {
         process(chunk);
+        chunk = read(256);
     }
 }
 
@@ -282,16 +301,15 @@ def foo():
         [Fact(DisplayName = nameof(Lv_Assign_Assign))]
         public void Lv_Assign_Assign()
         {
-            var pySrc = @"
-def func():
-    x = y = z = other_func(3)
+            var pySrc =
+@"function func()
+    local x, y = other_func(3), z
     yet_another_func(x, y, z)
-";
+end";
             var sExpected =
-@"public static object func() {
-    object z;
-    object y;
-    var x = y = (z = other_func(3));
+                @"public static object func() {
+    var x = other_func(3);
+    var y = z;
     yet_another_func(x, y, z);
 }
 

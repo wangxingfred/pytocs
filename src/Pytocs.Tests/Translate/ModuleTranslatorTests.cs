@@ -42,23 +42,23 @@ namespace Pytocs.UnitTests.Translate
 
         private string XlatModule(string pyModule, string filename = "module.py")
         {
+            var moduleName = Path.GetFileNameWithoutExtension(filename);
             var rdr = new StringReader(pyModule);
             var lex = new Lexer(filename, rdr);
             var par = new Parser(filename, lex);
             var stm = par.Parse().ToList();
             var unt = new CodeCompileUnit();
-            var gen = new CodeGenerator(unt, "test", Path.GetFileNameWithoutExtension(filename));
+            var gen = new CodeGenerator(unt, "test", moduleName);
             var opt = new Dictionary<string, object> { { "--quiet", true } };
             var ana = new AnalyzerImpl(fs, logger, opt, DateTime.Now);
-            var mod = new Module(
-                "module",
+            var mod = new Module(moduleName,
                 new SuiteStatement(stm, filename, 0, 0),
                 filename, 0, 0);
             ana.LoadModule(mod);
             ana.ApplyUncalled();
             
             var types = new TypeReferenceTranslator(ana.BuildTypeDictionary());
-            var xlt = new ModuleTranslator(types, gen);
+            var xlt = new ModuleTranslator(types, gen, moduleName);
             xlt.Translate(stm);
 
             var pvd = new CSharpCodeProvider();
@@ -71,16 +71,16 @@ namespace Pytocs.UnitTests.Translate
         public void Module_UsesList()
         {
             var pyModule =
-@"st = [ 'a' ]
+@"local st = [ 'a' ]
 ";
             var sExp =
 @"namespace test {
     
-    using System.Collections.Generic;
+    using Core;
     
     public static class module {
         
-        public static List<string> st = new List<string> {
+        public static LuaList<string> st = new LuaList<string> {
             ""a""
         };
     }
@@ -129,192 +129,252 @@ namespace Pytocs.UnitTests.Translate
             Assert.Equal(sExp, XlatModule(pyModule));
         }
 
-        [Fact(DisplayName = nameof(Module_DocComment))]
-        public void Module_DocComment()
-        {
-            var pyModule =
-@"'''Doc comment in
-two lines
-'''
-";
-            var sExp =
-@"// Doc comment in
+//         [Fact(DisplayName = nameof(Module_DocComment))]
+//         public void Module_DocComment()
+//         {
+//             var pyModule =
+// @"'''Doc comment in
 // two lines
-// 
-namespace test {
+// '''
+// ";
+//             var sExp =
+// @"// Doc comment in
+// // two lines
+// //
+// namespace test {
+//
+//     public static class module {
+//     }
+// }
+// ";
+//             Assert.Equal(sExp, XlatModule(pyModule));
+//         }
+
+//         [Fact(DisplayName = nameof(Module_MemberVars))]
+//         public void Module_MemberVars()
+//         {
+//             var pyModule =
+// @"_tokenizer = antlrre.Tokenizer(
+//     -- token regular expression table
+//     tokens = [
+//         (foo.a, 'sss')
+//     ])
+// ";
+//             var sExp =
+// @"namespace test {
+//
+//     using System;
+//
+//     using System.Collections.Generic;
+//
+//     public static class module {
+//
+//         public static object _tokenizer = antlrre.Tokenizer(tokens: new List<Tuple<object, string>> {
+//             (foo.a, ""sss"")
+//         });
+//     }
+// }
+// ";
+//             Assert.Equal(sExp, XlatModule(pyModule));
+//         }
+
+//         [Fact(DisplayName = nameof(Module__init__file))]
+//         public void Module__init__file()
+//         {
+//             var pyModule =
+// @"
+// def static_func():
+//   pass;
+//
+// class MyClass:
+//    def method(self, arg):
+//        print(arg)
+// ";
+//             string sExp =
+// @"namespace test {
+//
+//     public static class @__init__ {
+//
+//         public static void static_func() {
+//         }
+//     }
+//
+//     public class MyClass {
+//
+//         public virtual void method(object arg) {
+//             Console.WriteLine(arg);
+//         }
+//     }
+// }
+// ";
+//             Debug.Print(XlatModule(pyModule, "__init__.py"));
+//
+//             Assert.Equal(sExp, XlatModule(pyModule, "__init__.py"));
+//         }
+
+//         [Fact(DisplayName = nameof(Module__init__nested_classes))]
+//         public void Module__init__nested_classes()
+//         {
+//             var pyModule =
+// @"
+// class OuterClass:
+//    class InnerClass:
+//        pass
+// ";
+//             string sExp =
+// @"namespace test {
+//
+//     public static class @__init__ {
+//     }
+//
+//     public class OuterClass {
+//
+//         public class InnerClass {
+//         }
+//     }
+// }
+// ";
+//             Assert.Equal(sExp, XlatModule(pyModule, "__init__.py"));
+//         }
+
+//         [Fact(DisplayName = nameof(Module_import_as))]
+//         public void Module_import_as()
+//         {
+//             var pyModule =
+// @"
+// import vivisect.const as viv_const
+// ";
+//             var sExp =
+// @"namespace test {
+//
+//     using viv_const = vivisect.@const;
+//
+//     public static class module {
+//     }
+// }
+// ";
+//             Debug.Print(XlatModule(pyModule));
+//             Assert.Equal(sExp, XlatModule(pyModule));
+//         }
+
+//         [Fact(DisplayName = nameof(Module_init_global))]
+//         public void Module_init_global()
+//         {
+//             var pyModule =
+// @"
+// d = {}
+// ";
+//             var sExp =
+// @"namespace test {
+//
+//     using System.Collections.Generic;
+//
+//     public static class module {
+//
+//         public static Dictionary<object, object> d = new Dictionary<object, object> {
+//         };
+//     }
+// }
+// ";
+//             Debug.Print(XlatModule(pyModule));
+//             Assert.Equal(sExp, XlatModule(pyModule));
+//         }
+
+        [Fact]
+        public void Module_closure()
+        {
+            const string module =
+@"Boot = {}
+
+Boot.aa = true
+Boot.bb = nil
+Boot.cc = 1
+Boot.dd = """"
+
+local x
+local y = 3.5
+local z
+
+function Boot.Start()
+    x = Boot.aa
+    Boot.bb = y
+end
+";
+            const string sExp =
+@"namespace test {
     
-    public static class module {
+    public class Boot {
+        
+        public static Boot Singleton = new Boot();
+        
+        public bool aa = true;
+        
+        public dynamic bb = null;
+        
+        public int cc = 1;
+        
+        public string dd = """";
+        
+        public bool x;
+        
+        public double y = 3.5;
+        
+        public dynamic z;
+        
+        public virtual void Start() {
+            x = Boot.Singleton.aa;
+            Boot.Singleton.bb = y;
+        }
     }
 }
 ";
-            Assert.Equal(sExp, XlatModule(pyModule));
+            var actual = XlatModule(module, "Boot.py");
+            Debug.Print(actual);
+            Assert.Equal(sExp, actual);
         }
 
-        [Fact(DisplayName = nameof(Module_MemberVars))]
-        public void Module_MemberVars()
+        [Fact]
+        public void Module_class()
         {
-            var pyModule =
-@"_tokenizer = antlrre.Tokenizer(
-    " + @"# token regular expression table
-    tokens = [
-        (foo.a, 'sss')
-    ])
+            const string module =
+@"local cls = Class.Define(""Foo"")
+
+cls.aa = true
+cls.bb = nil
+cls.cc = 1
+cls.dd = """"
+
+---_Ctor 构造方法
+function cls:_Ctor(aa, bb, cc)
+    self.aa = aa
+    self.bb = bb
+    self.cc = cc
+end
 ";
-            var sExp =
+            const string sExp =
 @"namespace test {
     
-    using System;
-    
-    using System.Collections.Generic;
-    
-    public static class module {
+    public class Foo {
         
-        public static object _tokenizer = antlrre.Tokenizer(tokens: new List<Tuple<object, string>> {
-            (foo.a, ""sss"")
-        });
-    }
-}
-";
-            Assert.Equal(sExp, XlatModule(pyModule));
-        }
-
-        [Fact(DisplayName = nameof(Module__init__file))]
-        public void Module__init__file()
-        {
-            var pyModule =
-@"
-def static_func():
-  pass;
-
-class MyClass:
-   def method(self, arg):
-       print(arg)
-";
-            string sExp =
-@"namespace test {
-    
-    public static class @__init__ {
-        
-        public static void static_func() {
-        }
-    }
-    
-    public class MyClass {
-        
-        public virtual void method(object arg) {
-            Console.WriteLine(arg);
-        }
-    }
-}
-";
-            Debug.Print(XlatModule(pyModule, "__init__.py"));
-
-            Assert.Equal(sExp, XlatModule(pyModule, "__init__.py"));
-        }
-
-        [Fact(DisplayName = nameof(Module__init__nested_classes))]
-        public void Module__init__nested_classes()
-        {
-            var pyModule =
-@"
-class OuterClass:
-   class InnerClass:
-       pass
-";
-            string sExp =
-@"namespace test {
-    
-    public static class @__init__ {
-    }
-    
-    public class OuterClass {
-        
-        public class InnerClass {
-        }
-    }
-}
-";
-            Assert.Equal(sExp, XlatModule(pyModule, "__init__.py"));
-        }
-
-        [Fact(DisplayName = nameof(Module_import_as))]
-        public void Module_import_as()
-        {
-            var pyModule =
-@"
-import vivisect.const as viv_const
-";
-            var sExp =
-@"namespace test {
-    
-    using viv_const = vivisect.@const;
-    
-    public static class module {
-    }
-}
-";
-            Debug.Print(XlatModule(pyModule));
-            Assert.Equal(sExp, XlatModule(pyModule));
-        }
-
-        [Fact(DisplayName = nameof(Module_init_global))]
-        public void Module_init_global()
-        {
-            var pyModule =
-@"
-d = {}
-";
-            var sExp =
-@"namespace test {
-    
-    using System.Collections.Generic;
-    
-    public static class module {
-        
-        public static Dictionary<object, object> d = new Dictionary<object, object> {
-        };
-    }
-}
-";
-            Debug.Print(XlatModule(pyModule));
-            Assert.Equal(sExp, XlatModule(pyModule));
-        }
-
-        [Fact(DisplayName = nameof(Module_point_class_members))]
-        public void Module_point_class_members()
-        {
-            var pyModule =
-@"
-class Point:
-    def __init__(self, x, y):
-        self.x = x;
-        self.y = y;
-
-pt = Point(3.5, -0.4)
-";
-            var sExp =
-@"namespace test {
-    
-    public static class module {
-        
-        public class Point {
+            public bool aa;
             
-            public object x;
+            public dynamic bb;
+
+            public int cc;
+
+            public string dd;
             
-            public object y;
-            
-            public Point(double x, double y) {
-                this.x = x;
-                this.y = y;
+            public Foo(bool x, dynamic bb, int cc) {
+                this.aa = aa;
+                this.bb = bb;
+                this.cc = cc;
             }
-        }
-        
-        public static Point pt = new Point(3.5, -0.4);
     }
 }
 ";
-            Debug.Print(XlatModule(pyModule));
-            Assert.Equal(sExp, XlatModule(pyModule));
+            var actual = XlatModule(module, "Foo.py");
+            Debug.Print(actual);
+            Assert.Equal(sExp, actual);
         }
 
         [Fact(DisplayName = nameof(Module_slots))]

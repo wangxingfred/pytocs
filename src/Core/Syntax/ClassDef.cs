@@ -24,14 +24,25 @@ namespace Pytocs.Core.Syntax
     public class ClassDef : Statement
     {
         public readonly Identifier name;
-        public readonly List<Argument> args;    //$REVIEW: could these be dotted names?
-        public readonly SuiteStatement body;
+        public readonly Identifier? super;
+        public readonly bool isAbstract;
 
-        public ClassDef(Identifier name, List<Argument> baseClasses, SuiteStatement body, string filename, int start, int end) : base(filename, start, end) 
+        public readonly List<Argument>? args;    //$REVIEW: could these be dotted names?
+        public readonly SuiteStatement? body;
+
+        // public ClassDef(Identifier name, List<Argument> baseClasses, SuiteStatement body, string filename, int start, int end) : base(filename, start, end)
+        // {
+        //     this.name = name;
+        //     this.args = baseClasses;
+        //     this.body = body;
+        // }
+
+        public ClassDef(Identifier name, Identifier? super, bool isAbstract,
+            string filename, int start, int end) : base(filename, start, end)
         {
             this.name = name;
-            this.args = baseClasses;
-            this.body = body;
+            this.super = super;
+            this.isAbstract = isAbstract;
         }
 
         public override void Accept(IStatementVisitor v)

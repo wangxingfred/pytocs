@@ -164,12 +164,12 @@ namespace Pytocs.Core.CodeModel
             }
         }
 
-        public void VisitAwait(CodeAwaitExpression awaitExp)
-        {
-            writer.Write("await");
-            writer.Write(" ");
-            Write(awaitExp.Expression, Precedence.Unary, false);
-        }
+        // public void VisitAwait(CodeAwaitExpression awaitExp)
+        // {
+        //     writer.Write("await");
+        //     writer.Write(" ");
+        //     Write(awaitExp.Expression, Precedence.Unary, false);
+        // }
 
         public void VisitBase(CodeBaseReferenceExpression _)
         {
@@ -308,6 +308,7 @@ namespace Pytocs.Core.CodeModel
                 v.Accept(this);
             }
             --writer.IndentLevel;
+            writer.WriteLine();
             writer.Write("}");
         }
 
@@ -764,7 +765,8 @@ namespace Pytocs.Core.CodeModel
                 if (csharpTypenames.TryGetValue(typeName, out var csharpName))
                     writer.Write(csharpName);
                 else
-                    writer.WriteName(typeName);
+                    // writer.WriteName(typeName);
+                    writer.Write(typeName); // TODO check this
             }
         }
 

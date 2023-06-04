@@ -29,18 +29,25 @@ namespace Pytocs.Core.Translate
     public class ConstructorGenerator : MethodGenerator
     {
         public ConstructorGenerator(
-            ClassDef classDef,
+            string className,
+            ClassDef? classDef,
+            ClassType? classType,
             FunctionDef f,
-            List<Parameter> args, 
+            List<Parameter> parameters,
             TypeReferenceTranslator types,
             CodeGenerator gen)
-            : base(classDef, f, "", args, false, false, types, gen)
+            : base(className, classDef, classType, f, false, false, types, gen)
         {
+            MethodParams = parameters;
         }
+
+        protected override string MethodName => classDef!.name.Name;
+
+        protected override List<Parameter> MethodParams { get; }
 
         protected override CodeMemberMethod Generate(CodeTypeReference ignore, CodeParameterDeclarationExpression[] parms)
         {
-            var cons = gen.Constructor(parms, () => XlatConstructor(f.body));
+            var cons = gen.Constructor(parms, () => XlatConstructor(MethodBody));
             GenerateTupleParameterUnpackers(cons);
             LocalVariableGenerator.Generate(cons, globals);
             return cons;
@@ -60,7 +67,7 @@ namespace Pytocs.Core.Translate
                 return;
             if (!(expStm.Expression is CodeApplicationExpression appl))
                 return;
-            if (!(appl.Method is CodeFieldReferenceExpression method) || method.FieldName != "__init__")
+            if (!(appl.Method is CodeFieldReferenceExpression method) || method.FieldName != "_Ctor")
                 return;
             var ctor = (CodeConstructor) gen.CurrentMember!;
             ctor.Comments.AddRange(comments);

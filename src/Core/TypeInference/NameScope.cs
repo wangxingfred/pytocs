@@ -818,6 +818,14 @@ namespace Pytocs.Core.TypeInference
             if (bs != null)
             {
                 analyzer.AddRef(attr, targetType, bs);
+                
+                // TODO 验证这个逻辑：重复赋值的属性，增加类型（原逻辑是新建绑定）
+                foreach (var b in bs)
+                {
+                    b.AddType(attrType);
+                }
+
+                return;
             }
 
             targetType.Scope.AddLocalBinding(analyzer, attr.FieldName.Name, attr, attrType, BindingKind.ATTRIBUTE);

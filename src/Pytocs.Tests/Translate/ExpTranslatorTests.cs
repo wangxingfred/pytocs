@@ -199,7 +199,7 @@ namespace Pytocs.UnitTests.Translate
         {
             var pySrc = "{'indices'} ";
             string sExp =
-@"new List<object> {
+                @"new List<object> {
     ""indices""
 }";
             Assert.Equal(sExp, Xlat(pySrc));
@@ -409,205 +409,320 @@ namespace Pytocs.UnitTests.Translate
         // }
 
         [Fact]
-        public void Ex_intrinsic_len()
+        public void Ex_operator_len()
         {
-            // var pysrc = "len(foo.bar)";
             var luasrc = "#(foo.bar)";
             var sExp = "foo.bar.Count";
             Assert.Equal(sExp, Xlat(luasrc));
         }
 
         [Fact]
-        public void Ex_instrinsic_iteritems()
+        public void Ex_table_list_initializer()
         {
-            var pysrc = "foo.iteritems()";
-            var sExp = "foo";
-            Assert.Equal(sExp, Xlat(pysrc));
+            var luaSrc = "{ a, b, c }";
+            var sExp =
+                @"new LuaList<object> {
+    a,
+    b,
+    c
+}";
+            Assert.Equal(sExp, Xlat(luaSrc));
         }
 
         [Fact]
-        public void Ex_instrinsic_itervalues()
+        public void Ex_table_map_initializer()
         {
-            var pysrc = "foo.itervalues()";
-            var sExp = "foo.Values";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
+            var luaSrc = "{ a = 1, b = 2, c = 3 }";
+            var sExp = @"new Dictionary<object, object> {
+    {
+        ""a"",
+        1
+    },
+    {
+        ""b"",
+        2
+    },
+    {
+        ""c"",
+        3
+    }
+}";
 
-        [Fact(DisplayName = nameof(Ex_instrinsic_iterkeys))]
-        public void Ex_instrinsic_iterkeys()
-        {
-            var pysrc = "foo.iterkeys()";
-            var sExp = "foo.Keys";
-            Assert.Equal(sExp, Xlat(pysrc));
+        Assert.Equal(sExp, Xlat(luaSrc));
         }
 
         [Fact]
-        public void Ex_instrinsic_sum()
+        public void Ex_table_concat()
         {
-            var pysrc = "sum(bar)";
-            var sExp = "bar.Sum()";
-            Assert.Equal(sExp, Xlat(pysrc));
+            var luaSrc = "table.concat(list)";
+            var sExp = "list.Concat()";
+            Assert.Equal(sExp, Xlat(luaSrc));
+
+            luaSrc = "table.concat(list, sep)";
+            sExp = "list.Concat(sep)";
+            Assert.Equal(sExp, Xlat(luaSrc));
+
+            luaSrc = "table.concat(list, sep, i, j)";
+            sExp = "list.Concat(sep, i, j)";
+            Assert.Equal(sExp, Xlat(luaSrc));
         }
+
+        [Fact]
+        public void Ex_table_insert()
+        {
+            var luaSrc = "table.insert(list, value)";
+            var sExp = "list.Add(value)";
+            Assert.Equal(sExp, Xlat(luaSrc));
+
+            luaSrc = "table.insert(list, pos, value)";
+            sExp = "list.Insert(pos, value)";
+            Assert.Equal(sExp, Xlat(luaSrc));
+        }
+
+        [Fact]
+        public void Ex_table_remove()
+        {
+            var luaSrc = "table.remove(list)";
+            var sExp = "list.RemoveAt(list.Count)";
+            Assert.Equal(sExp, Xlat(luaSrc));
+
+            luaSrc = "table.remove(list, pos)";
+            sExp = "list.RemoveAt(pos)";
+            Assert.Equal(sExp, Xlat(luaSrc));
+        }
+
+        [Fact]
+        public void Ex_table_sort()
+        {
+            var luaSrc = "table.sort(list)";
+            var sExp = "list.Sort()";
+            Assert.Equal(sExp, Xlat(luaSrc));
+
+            luaSrc = "table.sort(list, comp)";
+            sExp = "list.Sort(comp)";
+            Assert.Equal(sExp, Xlat(luaSrc));
+        }
+
+        [Fact]
+        public void Ex_table_unpack()
+        {
+            var luaSrc = "foo(table.unpack(list))";
+            var sExp = "foo(list.ToArray())";
+
+            Assert.Equal(sExp, Xlat(luaSrc));
+        }
+
+        [Fact]
+        public void Ex_string_format()
+        {
+            // TODO
+        }
+
+        [Fact]
+        public void Ex_string_byte()
+        {
+            // TODO
+        }
+
+        // [Fact]
+        // public void Ex_intrinsic_len()
+        // {
+        //     var pysrc = "len(foo.bar)";
+        //     var sExp = "foo.bar.Count";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
+
+        // [Fact]
+        // public void Ex_instrinsic_iteritems()
+        // {
+        //     var pysrc = "foo.iteritems()";
+        //     var sExp = "foo";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
+
+        // [Fact]
+        // public void Ex_instrinsic_itervalues()
+        // {
+        //     var pysrc = "foo.itervalues()";
+        //     var sExp = "foo.Values";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
+
+        // [Fact(DisplayName = nameof(Ex_instrinsic_iterkeys))]
+        // public void Ex_instrinsic_iterkeys()
+        // {
+        //     var pysrc = "foo.iterkeys()";
+        //     var sExp = "foo.Keys";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
+
+        // [Fact]
+        // public void Ex_instrinsic_sum()
+        // {
+        //     var pysrc = "sum(bar)";
+        //     var sExp = "bar.Sum()";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
         
-        [Fact]
-        public void Ex_instrinsic_list()
-        {
-            var pysrc = "list()";
-            var sExp = "new List<object>()";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
+        // [Fact]
+        // public void Ex_instrinsic_list()
+        // {
+        //     var pysrc = "list()";
+        //     var sExp = "new List<object>()";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
 
-        [Fact]
-        public void Ex_instrinsic_set()
-        {
-            var pysrc = "set()";
-            var sExp = "new HashSet<object>()";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
+        // [Fact]
+        // public void Ex_instrinsic_set()
+        // {
+        //     var pysrc = "set()";
+        //     var sExp = "new HashSet<object>()";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
 
-        [Fact]
-        public void Ex_instrinsic_set_with_args()
-        {
-            var pysrc = "set(a)";
-            var sExp = "new HashSet<object>(a)";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
+        // [Fact]
+        // public void Ex_instrinsic_set_with_args()
+        // {
+        //     var pysrc = "set(a)";
+        //     var sExp = "new HashSet<object>(a)";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
 
-        [Fact]
-        public void Ex_intrinsic_dict()
-        {
-            var pysrc = "dict()";
-            var sExp = "new Dictionary<object, object>()";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
+        // [Fact]
+        // public void Ex_intrinsic_dict()
+        // {
+        //     var pysrc = "dict()";
+        //     var sExp = "new Dictionary<object, object>()";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
 
-        [Fact]
-        public void Ex_intrinsic_dict_kwargs()
-        {
-            var pysrc = "dict(foo='bob', bar=sue+3)";
-            var sExp =
-                "new Dictionary<@string, object> {" + nl +
-                "    {" + nl +
-                "        \"foo\"," + nl +
-                "        \"bob\"}," + nl +
-                "    {" + nl +
-                "        \"bar\"," + nl +
-                "        sue + 3}}";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
+        // [Fact]
+        // public void Ex_intrinsic_dict_kwargs()
+        // {
+        //     var pysrc = "dict(foo='bob', bar=sue+3)";
+        //     var sExp =
+        //         "new Dictionary<@string, object> {" + nl +
+        //         "    {" + nl +
+        //         "        \"foo\"," + nl +
+        //         "        \"bob\"}," + nl +
+        //         "    {" + nl +
+        //         "        \"bar\"," + nl +
+        //         "        sue + 3}}";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
 
-        [Fact]
-        public void Ex_intrinsic_dict_iterable()
-        {
-            var pysrc = "dict(a)";
-            var sExp = "a.ToDictionary()";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
+        // [Fact]
+        // public void Ex_intrinsic_dict_iterable()
+        // {
+        //     var pysrc = "dict(a)";
+        //     var sExp = "a.ToDictionary()";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
 
-        [Fact]
-        public void Ex_intrinsic_filter()
-        {
-            var pysrc = "filter(fn, items)";
-            var sExp = "items.Where(fn).ToList()";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
+        // [Fact]
+        // public void Ex_intrinsic_filter()
+        // {
+        //     var pysrc = "filter(fn, items)";
+        //     var sExp = "items.Where(fn).ToList()";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
 
-        [Fact]
-        public void Ex_intrinsic_filter_none()
-        {
-            var pysrc = "filter(None, items)";
-            var sExp = "items.Where(_p_1 => _p_1 != null).ToList()";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
+        // [Fact]
+        // public void Ex_intrinsic_filter_none()
+        // {
+        //     var pysrc = "filter(None, items)";
+        //     var sExp = "items.Where(_p_1 => _p_1 != null).ToList()";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
+        //
+        // [Fact]
+        // public void Ex_intrinsic_sorted()
+        // {
+        //     var pysrc = "sorted(items)";
+        //     var sExp = "items.OrderBy(_p_1 => _p_1).ToList()";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
+        //
+        // [Fact]
+        // public void Ex_intrinsic_sorted_cmp()
+        // {
+        //     var pysrc = "sorted(items, cmp)";
+        //     var sExp = "items.OrderBy(cmp).ToList()";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
 
-        [Fact]
-        public void Ex_intrinsic_sorted()
-        {
-            var pysrc = "sorted(items)";
-            var sExp = "items.OrderBy(_p_1 => _p_1).ToList()";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
+        // [Fact]
+        // public void Ex_intrinsic_sorted_key()
+        // {
+        //     var pysrc = "sorted(items, key=lambda x: x.addr)";
+        //     var sExp = "items.OrderBy(x => x.addr).ToList()";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
+        //
+        // [Fact]
+        // public void Ex_intrinsic_sorted_reverse_bool()
+        // {
+        //     var pysrc = "sorted(items, reverse=true)";
+        //     var sExp = "items.OrderBy(_p_1 => _p_1).ToList()";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
+        //
+        // [Fact]
+        // public void Ex_intrinsic_enumerate()
+        // {
+        //     var pysrc = "enumerate(items)";
+        //     var sExp = "items.Select((_p_1,_p_2) => Tuple.Create(_p_2, _p_1))";
+        //     Assert.Equal(sExp, Xlat(pysrc));
+        // }
 
-        [Fact]
-        public void Ex_intrinsic_sorted_cmp()
-        {
-            var pysrc = "sorted(items, cmp)";
-            var sExp = "items.OrderBy(cmp).ToList()";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
+//         [Fact]
+//         public void Ex_for_with_if()
+//         {
+//             var pysrc = "(a for a in function.endpoints if a.addr == endpoint_addr)";
+//             var sExp =
+// @"from a in function.endpoints
+//     where a.addr == endpoint_addr
+//     select a";
+//             Assert.Equal(sExp, Xlat(pysrc));
+//         }
+//
+//         [Fact]
+//         public void Ex_for_with_if_projected()
+//         {
+//             var pysrc = "(a.x for a in function.endpoints if a.addr == endpoint_addr)";
+//             var sExp =
+// @"from a in function.endpoints
+//     where a.addr == endpoint_addr
+//     select a.x";
+//             Assert.Equal(sExp, Xlat(pysrc));
+//         }
+//
+//         [Fact]
+//         public void Ex_for_with_if_projected_to_set()
+//         {
+//             var pysrc = "{a for a in function.endpoints if a.addr == endpoint_addr}";
+//             var sExp =
+// @"(from a in function.endpoints
+//     where a.addr == endpoint_addr
+//     select a).ToHashSet()";
+//             Assert.Equal(sExp, Xlat(pysrc));
+//         }
 
-        [Fact]
-        public void Ex_intrinsic_sorted_key()
-        {
-            var pysrc = "sorted(items, key=lambda x: x.addr)";
-            var sExp = "items.OrderBy(x => x.addr).ToList()";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
-
-        [Fact]
-        public void Ex_intrinsic_sorted_reverse_bool()
-        {
-            var pysrc = "sorted(items, reverse=true)";
-            var sExp = "items.OrderBy(_p_1 => _p_1).ToList()";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
-
-        [Fact]
-        public void Ex_intrinsic_enumerate()
-        {
-            var pysrc = "enumerate(items)";
-            var sExp = "items.Select((_p_1,_p_2) => Tuple.Create(_p_2, _p_1))";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
-
-        [Fact]
-        public void Ex_for_with_if()
-        {
-            var pysrc = "(a for a in function.endpoints if a.addr == endpoint_addr)";
-            var sExp =
-@"from a in function.endpoints
-    where a.addr == endpoint_addr
-    select a";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
-
-        [Fact]
-        public void Ex_for_with_if_projected()
-        {
-            var pysrc = "(a.x for a in function.endpoints if a.addr == endpoint_addr)";
-            var sExp =
-@"from a in function.endpoints
-    where a.addr == endpoint_addr
-    select a.x";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
-
-        [Fact]
-        public void Ex_for_with_if_projected_to_set()
-        {
-            var pysrc = "{a for a in function.endpoints if a.addr == endpoint_addr}";
-            var sExp =
-@"(from a in function.endpoints
-    where a.addr == endpoint_addr
-    select a).ToHashSet()";
-            Assert.Equal(sExp, Xlat(pysrc));
-        }
-
-        [Fact]
-        public void Ex_dict_Comprehension()
-        {
-            var pySrc = "{AT.from_rva(v, self).to_mva(): k for (k, v) in self._plt.iteritems()}";
-            var sExp = "this._plt.ToDictionary(_de1 => AT.from_rva(_de1.Value, this).to_mva(), _de1 => _de1.Key)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
-
-        [Fact]
-        public void Ex_struct_unpack()
-        {
-            var pySrc = "struct.unpack('3x', buffer)";
-            var sExp = "@struct.unpack(\"3x\", buffer)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_dict_Comprehension()
+        // {
+        //     var pySrc = "{AT.from_rva(v, self).to_mva(): k for (k, v) in self._plt.iteritems()}";
+        //     var sExp = "this._plt.ToDictionary(_de1 => AT.from_rva(_de1.Value, this).to_mva(), _de1 => _de1.Key)";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
+        //
+        // [Fact]
+        // public void Ex_struct_unpack()
+        // {
+        //     var pySrc = "struct.unpack('3x', buffer)";
+        //     var sExp = "@struct.unpack(\"3x\", buffer)";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
         [Fact]
         public void Ex_ScientificNotation()
@@ -625,13 +740,13 @@ namespace Pytocs.UnitTests.Translate
             Assert.Equal(sExp, Xlat(pySrc));
         }
 
-        [Fact]
-        public void Ex_Github_Issue_14()
-        {
-            var pySrc = "len(x + y + z)";
-            var sExp = "(x + y + z).Count";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_Github_Issue_14()
+        // {
+        //     var pySrc = "len(x + y + z)";
+        //     var sExp = "(x + y + z).Count";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
         // Reported in Github issue #17
         [Fact]
@@ -642,19 +757,19 @@ namespace Pytocs.UnitTests.Translate
             Assert.Equal(sExp, Xlat(pySrc));
         }
 
-        [Fact(DisplayName = nameof(Ex_NestedForIfComprehensions))]
-        public void Ex_NestedForIfComprehensions()
-        {
-            var pySrc = "[state for (stash, states) in self.simgr.stashes.items() if (stash != 'pruned') for state in states ]";
-            var sExp =
-@"(from _tup_1 in this.simgr.stashes.items()
-    let stash = _tup_1.Item1
-    let states = _tup_1.Item2
-    where stash != ""pruned""
-    from state in states
-    select state).ToList()";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+//         [Fact(DisplayName = nameof(Ex_NestedForIfComprehensions))]
+//         public void Ex_NestedForIfComprehensions()
+//         {
+//             var pySrc = "[state for (stash, states) in self.simgr.stashes.items() if (stash != 'pruned') for state in states ]";
+//             var sExp =
+// @"(from _tup_1 in this.simgr.stashes.items()
+//     let stash = _tup_1.Item1
+//     let states = _tup_1.Item2
+//     where stash != ""pruned""
+//     from state in states
+//     select state).ToList()";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
         // Reported in Github issue #26
         [Fact]
@@ -665,210 +780,213 @@ namespace Pytocs.UnitTests.Translate
             Assert.Equal(sExp, Xlat(pySrc));
         }
 
-        [Fact]
-        public void Ex_Infinity_FloatBif()
-        {
-            string pySrc = "float('+inf')";
-            string sExp = "double.PositiveInfinity";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_Infinity_FloatBif()
+        // {
+        //     string pySrc = "float('+inf')";
+        //     string sExp = "double.PositiveInfinity";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_Complex_Literal()
-        {
-            string pySrc = "3 - 4j";
-            string sExp = "new Complex(3.0, -4.0)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_Complex_Literal()
+        // {
+        //     string pySrc = "3 - 4j";
+        //     string sExp = "new Complex(3.0, -4.0)";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_Complex()
-        {
-            string pySrc = "complex(3,4)";
-            string sExp = "new Complex(3, 4)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_Complex()
+        // {
+        //     string pySrc = "complex(3,4)";
+        //     string sExp = "new Complex(3, 4)";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_Await()
-        {
-            string pySrc = "await foo";
-            string sExp = "await foo";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_Await()
+        // {
+        //     string pySrc = "await foo";
+        //     string sExp = "await foo";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_nested_for_comprehensions()
-        {
-            string pySrc = "[(a, s) for a in stackframe.alocs.values() for s in a._segment_list]";
-            string sExp = 
-@"(from a in stackframe.alocs.values()
-    from s in a._segment_list
-    select (a, s)).ToList()";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
-
-        [Fact(DisplayName = nameof(Ex_ListComprehension_Alternating_fors))]
-        public void Ex_ListComprehension_Alternating_fors()
-        {
-            var pySrc = "[state for (stash, states) in self.simgr.stashes.items() if stash != 'pruned' for state in states]";
-            var sExp =
-@"(from _tup_1 in this.simgr.stashes.items()
-    let stash = _tup_1.Item1
-    let states = _tup_1.Item2
-    where stash != ""pruned""
-    from state in states
-    select state).ToList()";
-
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
-
-        [Fact(DisplayName = nameof(Ex_nested_for_comprehension))]
-        public void Ex_nested_for_comprehension()
-        {
-            var pySrc = "((a, b) for a,b in list for a,b in (a,b)))";
-            var sExp =
-@"from _tup_1 in list
-    let a = _tup_1.Item1
-    let b = _tup_1.Item2
-    from _tup_2 in (a, b)
-    let a = _tup_2.Item1
-    let b = _tup_2.Item2
-    select (a, b)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+//         [Fact]
+//         public void Ex_nested_for_comprehensions()
+//         {
+//             string pySrc = "[(a, s) for a in stackframe.alocs.values() for s in a._segment_list]";
+//             string sExp =
+// @"(from a in stackframe.alocs.values()
+//     from s in a._segment_list
+//     select (a, s)).ToList()";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
+//
+//         [Fact(DisplayName = nameof(Ex_ListComprehension_Alternating_fors))]
+//         public void Ex_ListComprehension_Alternating_fors()
+//         {
+//             var pySrc = "[state for (stash, states) in self.simgr.stashes.items() if stash != 'pruned' for state in states]";
+//             var sExp =
+// @"(from _tup_1 in this.simgr.stashes.items()
+//     let stash = _tup_1.Item1
+//     let states = _tup_1.Item2
+//     where stash != ""pruned""
+//     from state in states
+//     select state).ToList()";
+//
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
+//
+//         [Fact(DisplayName = nameof(Ex_nested_for_comprehension))]
+//         public void Ex_nested_for_comprehension()
+//         {
+//             var pySrc = "((a, b) for a,b in list for a,b in (a,b)))";
+//             var sExp =
+// @"from _tup_1 in list
+//     let a = _tup_1.Item1
+//     let b = _tup_1.Item2
+//     from _tup_2 in (a, b)
+//     let a = _tup_2.Item1
+//     let b = _tup_2.Item2
+//     select (a, b)";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
         [Fact(DisplayName = nameof(Ex_str_builtin))]
         public void Ex_str_builtin()
         {
-            var pySrc = "str(a)";
+            // var pySrc = "str(a)";
+            var luaStr = "tostring(a)";
             var sExp = "a.ToString()";
-            Assert.Equal(sExp, Xlat(pySrc));
+            Assert.Equal(sExp, Xlat(luaStr));
         }
 
-        [Fact(DisplayName = nameof(Ex_str_builtin_encoding))]
-        public void Ex_str_builtin_encoding()
-        {
-            var pySrc = "str(a, 'utf-8')";
-            var sExp = "Encoding.GetEncoding(\"utf-8\").GetString(a)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact(DisplayName = nameof(Ex_str_builtin_encoding))]
+        // public void Ex_str_builtin_encoding()
+        // {
+        //     var pySrc = "str(a, 'utf-8')";
+        //     var sExp = "Encoding.GetEncoding(\"utf-8\").GetString(a)";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact(DisplayName = nameof(Ex_str_parameterless))]
-        public void Ex_str_parameterless()
-        {
-            var pySrc = "str()";
-            var sExp = @"String.Empty";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact(DisplayName = nameof(Ex_str_parameterless))]
+        // public void Ex_str_parameterless()
+        // {
+        //     var pySrc = "str()";
+        //     var sExp = @"String.Empty";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact(DisplayName = nameof(Ex_issue_57))]
-        public void Ex_issue_57()
-        {
-            var pySrc = "{'a': 'str', **kwargs }";
-            var sExp = @"DictionaryUtils.Unpack<string, object>((""a"", ""str""), kwargs)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact(DisplayName = nameof(Ex_issue_57))]
+        // public void Ex_issue_57()
+        // {
+        //     var pySrc = "{'a': 'str', **kwargs }";
+        //     var sExp = @"DictionaryUtils.Unpack<string, object>((""a"", ""str""), kwargs)";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_lambda_kwargs()
-        {
-            var pySrc = "lambda x, **k: xpath_text(hd_doc, './/video/' + x, **k)";
-            var sExp = "(x,k) => xpath_text(hd_doc, \".//video/\" + x, k)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_lambda_kwargs()
+        // {
+        //     var pySrc = "lambda x, **k: xpath_text(hd_doc, './/video/' + x, **k)";
+        //     var sExp = "(x,k) => xpath_text(hd_doc, \".//video/\" + x, k)";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact]
-        public void Ex_set_unpackers()
-        {
-            var pySrc = "{ *set1, 0, 1, *set2, '3' }";
-            var sExp = "SetUtils.Unpack<object>(set1, new object[] {" + nl +
-                "    0," + nl +
-                "    1," + nl +
-                "}, set2, new object[] {" + nl +
-                "    \"3\"," + nl +
-                "})";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact]
+        // public void Ex_set_unpackers()
+        // {
+        //     var pySrc = "{ *set1, 0, 1, *set2, '3' }";
+        //     var sExp = "SetUtils.Unpack<object>(set1, new object[] {" + nl +
+        //         "    0," + nl +
+        //         "    1," + nl +
+        //         "}, set2, new object[] {" + nl +
+        //         "    \"3\"," + nl +
+        //         "})";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
         [Fact]
         public void Ex_hex_literal()
         {
-            var pySrc = "0x_1234";
-            var sExp = "0x_1234";
-            Assert.Equal(sExp, Xlat(pySrc));
+            // var pySrc = "0x_1234";
+            // var sExp = "0x_1234";
+            var luaSrc = "0x1234";
+            var sExp = "0x1234";
+            Assert.Equal(sExp, Xlat(luaSrc));
         }
 
-        [Fact]
-        public void Ex_list_unpackers()
-        {
-            var pySrc = "[ 1, 2, *foo, 3, 4]";
-            var sExp =
-@"ListUtils.Unpack<object>(new object[] {
-    1,
-    2,
-}, foo, new object[] {
-    3,
-    4,
-})";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+//         [Fact]
+//         public void Ex_list_unpackers()
+//         {
+//             var pySrc = "[ 1, 2, *foo, 3, 4]";
+//             var sExp =
+// @"ListUtils.Unpack<object>(new object[] {
+//     1,
+//     2,
+// }, foo, new object[] {
+//     3,
+//     4,
+// })";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
-        [Fact]
-        public void Ex_tuple_unpacker()
-        {
-            var pySrc = "(1, 2, *foo, 3, 4)";
-            var sExp =
-@"TupleUtils.Unpack<object>(new object[] {
-    1,
-    2,
-}, foo, new object[] {
-    3,
-    4,
-})";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+//         [Fact]
+//         public void Ex_tuple_unpacker()
+//         {
+//             var pySrc = "(1, 2, *foo, 3, 4)";
+//             var sExp =
+// @"TupleUtils.Unpack<object>(new object[] {
+//     1,
+//     2,
+// }, foo, new object[] {
+//     3,
+//     4,
+// })";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
-        [Fact(DisplayName = nameof(Ex_FormatString))]
-        public void Ex_FormatString()
-        {
-            var pySrc = "f'Hello {world}'";
-            var sExp = "$\"Hello {world}\"";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact(DisplayName = nameof(Ex_FormatString))]
+        // public void Ex_FormatString()
+        // {
+        //     var pySrc = "f'Hello {world}'";
+        //     var sExp = "$\"Hello {world}\"";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
 
-        [Fact(DisplayName = nameof(Ex_DictComprehension))]
-        public void Ex_DictComprehension()
-        {
-            var pySrc = "{va: size for (va, size, fva) in vw.getFunctionBlocks(funcva)}";
-            var sExp =
-@"(from _tup_1 in vw.getFunctionBlocks(funcva)
-    let va = _tup_1.Item1
-    let size = _tup_1.Item2
-    let fva = _tup_1.Item3
-    select (va, size)).ToDictionary(_de_1 => _de_1.Item1, _de_1 => _de_1.Item2)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+//         [Fact(DisplayName = nameof(Ex_DictComprehension))]
+//         public void Ex_DictComprehension()
+//         {
+//             var pySrc = "{va: size for (va, size, fva) in vw.getFunctionBlocks(funcva)}";
+//             var sExp =
+// @"(from _tup_1 in vw.getFunctionBlocks(funcva)
+//     let va = _tup_1.Item1
+//     let size = _tup_1.Item2
+//     let fva = _tup_1.Item3
+//     select (va, size)).ToDictionary(_de_1 => _de_1.Item1, _de_1 => _de_1.Item2)";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
-        [Fact(DisplayName = nameof(Ex_SetInitializer))]
-        public void Ex_SetInitializer()
-        {
-            var pySrc = "{ a, b, c }";
-            var sExp = 
-@"new HashSet {
-    a,
-    b,
-    c
-}";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+//         [Fact(DisplayName = nameof(Ex_SetInitializer))]
+//         public void Ex_SetInitializer()
+//         {
+//             var pySrc = "{ a, b, c }";
+//             var sExp =
+// @"new HashSet {
+//     a,
+//     b,
+//     c
+// }";
+//             Assert.Equal(sExp, Xlat(pySrc));
+//         }
 
-        [Fact(DisplayName = nameof(Ex_MatrixMultiplication))]
-        public void Ex_MatrixMultiplication()
-        {
-            var pySrc = "a @ b";
-            var sExp = "a.@__matmul__(b)";
-            Assert.Equal(sExp, Xlat(pySrc));
-        }
+        // [Fact(DisplayName = nameof(Ex_MatrixMultiplication))]
+        // public void Ex_MatrixMultiplication()
+        // {
+        //     var pySrc = "a @ b";
+        //     var sExp = "a.@__matmul__(b)";
+        //     Assert.Equal(sExp, Xlat(pySrc));
+        // }
     }
 }

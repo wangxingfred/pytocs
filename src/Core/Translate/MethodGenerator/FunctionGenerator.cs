@@ -1,4 +1,4 @@
-﻿#region License
+#region License
 //  Copyright 2015-2021 John Källén
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,31 +14,31 @@
 //  limitations under the License.
 #endregion
 
+using Pytocs.Core.CodeModel;
+using Pytocs.Core.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Pytocs.Core.CodeModel
+namespace Pytocs.Core.Translate
 {
-    public class CodeAwaitExpression : CodeExpression
+    public class FunctionGenerator : MethodGenerator
     {
-        public CodeExpression Expression { get; set; }
-
-        public CodeAwaitExpression(CodeExpression exp)
+        public FunctionGenerator(
+            FunctionDef f,
+            bool isAsync,
+            TypeReferenceTranslator types,
+            CodeGenerator gen) : base(null, null, null, f, true, isAsync, types, gen)
         {
-            this.Expression = exp;
         }
 
-        public override T Accept<T>(ICodeExpressionVisitor<T> visitor)
+        protected override ICodeFunction Generate(CodeTypeReference retType, CodeParameterDeclarationExpression[] parms)
         {
-            return visitor.VisitAwait(this);
-        }
-
-        public override void Accept(ICodeExpressionVisitor visitor)
-        {
-            visitor.VisitAwait(this);
+            var func = gen.LocalFunction(MethodName, retType, parms, () => Xlat(MethodBody));
+            func.IsAsync = isAsync;
+            return func;
         }
     }
 }
