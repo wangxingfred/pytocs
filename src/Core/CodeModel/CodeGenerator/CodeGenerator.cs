@@ -120,19 +120,19 @@ namespace Pytocs.Core.CodeModel
 
         public CodeTypeDeclaration Class(
             string name,
-            IEnumerable<string> baseClasses,
+            IEnumerable<string>? baseClasses,
             Func<IEnumerable<CodeMemberField>> fieldGenerator,
             Action bodyGenerator)
         {
-            var baseTypes = baseClasses.Select(b => new CodeTypeReference(b)).ToArray();
+            var baseTypes = baseClasses?.Select(b => new CodeTypeReference(b)).ToArray();
             
             if (name == CurrentType.Name)
             {
                 // 用于模块中定义同名类的情况
                 // TODO: 或许应该通过name去查找是否已经存在同名类？
-                
-                CurrentType.BaseTypes.AddRange(baseTypes);
-                
+
+                if (baseTypes != null) CurrentType.BaseTypes.AddRange(baseTypes);
+
                 // TODO CurrentType.Members.AddRange(fieldGenerator());
                 return CurrentType;
             }
@@ -156,7 +156,7 @@ namespace Pytocs.Core.CodeModel
                 AddMemberWithComments(c);
             }
 
-            c.BaseTypes.AddRange(baseTypes);
+            if (baseTypes != null) CurrentType.BaseTypes.AddRange(baseTypes);
             var old = CurrentType;
             var oldMethod = CurrentMember;
             var oldStmts = CurrentStatements;

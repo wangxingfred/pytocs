@@ -417,7 +417,7 @@ namespace Pytocs.Core.TypeInference
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        public DataType? LoadFile(string path)
+        public ModuleType? LoadFile(string path)
         {
             path = FileSystem.GetFullPath(path);
             if (!FileSystem.FileExists(path))
@@ -445,7 +445,7 @@ namespace Pytocs.Core.TypeInference
             loadingProgress?.Tick();
 
             var ast = GetAstForFile(path);
-            DataType? type = null;
+            ModuleType? type = null;
             if (ast == null)
             {
                 failedToParse.Add(path);
@@ -462,9 +462,10 @@ namespace Pytocs.Core.TypeInference
             return type;
         }
 
-        public DataType LoadModule(Module ast)
+        public ModuleType LoadModule(Module ast)
         {
-            return new TypeCollector(this.ModuleScope, this).VisitModule(ast);
+            var typeCollector = new TypeCollector(this.ModuleScope, this);
+            return typeCollector.VisitModule(ast);
         }
 
         private string CreateCacheDirectory()

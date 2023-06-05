@@ -54,11 +54,11 @@ namespace Pytocs.UnitTests.Translate
             var mod = new Module(moduleName,
                 new SuiteStatement(stm, filename, 0, 0),
                 filename, 0, 0);
-            ana.LoadModule(mod);
+            var moduleType = ana.LoadModule(mod);
             ana.ApplyUncalled();
             
             var types = new TypeReferenceTranslator(ana.BuildTypeDictionary());
-            var xlt = new ModuleTranslator(types, gen, moduleName);
+            var xlt = new ModuleTranslator(types, gen, moduleName, moduleType);
             xlt.Translate(stm);
 
             var pvd = new CSharpCodeProvider();
@@ -281,7 +281,7 @@ namespace Pytocs.UnitTests.Translate
 //         }
 
         [Fact]
-        public void Module_closure()
+        public void Module_singleton()
         {
             const string module =
 @"Boot = {}
@@ -332,6 +332,63 @@ end
             Debug.Print(actual);
             Assert.Equal(sExp, actual);
         }
+        
+        [Fact]
+        public void Module_closure()
+        {
+            const string module =
+@"Animal = {}
+
+function Animal.New()
+    local obj = {}
+
+    obj.aa = true
+    obj.bb = nil
+
+    local cc = 33
+
+    function obj.Start()
+    end
+
+    function obj.GetCC()
+        return cc
+    end
+
+    return obj
+end
+";
+            const string sExp =
+                @"namespace test {
+    
+    public class Boot {
+        
+        public static Boot Singleton = new Boot();
+        
+        public bool aa = true;
+        
+        public dynamic bb = null;
+        
+        public int cc = 1;
+        
+        public string dd = """";
+        
+        public bool x;
+        
+        public double y = 3.5;
+        
+        public dynamic z;
+        
+        public virtual void Start() {
+            x = Boot.Singleton.aa;
+            Boot.Singleton.bb = y;
+        }
+    }
+}
+";
+            var actual = XlatModule(module, "Animal.py");
+            Debug.Print(actual);
+            Assert.Equal(sExp, actual);
+        }
 
         [Fact]
         public void Module_class()
@@ -356,19 +413,19 @@ end
     
     public class Foo {
         
-            public bool aa;
-            
-            public dynamic bb;
-
-            public int cc;
-
-            public string dd;
-            
-            public Foo(bool x, dynamic bb, int cc) {
-                this.aa = aa;
-                this.bb = bb;
-                this.cc = cc;
-            }
+        public bool aa = true;
+        
+        public dynamic bb = null;
+        
+        public int cc = 1;
+        
+        public string dd = """";
+        
+        public Foo(dynamic aa, dynamic bb, dynamic cc) {
+            this.aa = aa;
+            this.bb = bb;
+            this.cc = cc;
+        }
     }
 }
 ";

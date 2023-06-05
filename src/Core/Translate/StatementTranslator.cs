@@ -122,6 +122,24 @@ namespace Pytocs.Core.Translate
                             types, gen, gensym, new HashSet<string>());
                         c.body.Accept(stmtXlt);
                     });
+
+                // var classDataType = (types.TypeOf(c.name) as ClassType)!;
+                // foreach (var (_, dataType) in classDataType.Scope.DataTypes)
+                // {
+                //     if (dataType is ClassType innerClassType)
+                //     {
+                //         gen.Class(innerClassType.name,
+                //             null,
+                //             () => GenerateFields(innerClassType),
+                //             () =>
+                //             {
+                //                 // var gensym = new SymbolGenerator();
+                //                 // var stmtXlt = new StatementTranslator(innerClassType.name, innerClassType.classDef, innerClassType,
+                //                 //     types, gen, gensym, new HashSet<string>());
+                //                 // innerClassType.classDef.body.Accept(stmtXlt);
+                //             });
+                //     }
+                // }
             }
 
             // csType.Comments.AddRange(comments);
@@ -155,10 +173,15 @@ namespace Pytocs.Core.Translate
             // return c.args.Count == 1 && c.args[0].DefaultValue?.ToString() == "Enum";
         }
 
-        private IEnumerable<CodeMemberField> GenerateFields(ClassDef c)
+        protected IEnumerable<CodeMemberField> GenerateFields(ClassDef c)
         {
             var ct = types.TypeOf(c.name);
-            var fields = ct.Scope.table.Where(m => IsField(m.Value))
+            return GenerateFields(ct);
+        }
+        
+        protected IEnumerable<CodeMemberField> GenerateFields(DataType dataType)
+        {
+            var fields = dataType.Scope.table.Where(m => IsField(m.Value))
                 .OrderBy(f => f.Key);
             foreach (var field in fields)
             {
@@ -481,15 +504,7 @@ namespace Pytocs.Core.Translate
             gensym.EnsureLocalVariable(dst.Name, dt, false);
 
             var dstType = types.TypeOf(dst);
-
-            // 赋值对象是否为类的单例
-            var dstIsSingleton = false;
-            ClassType? singletonType = null;
-            if (dstType is ClassType classType && classType.name == gen.CurrentType.Name)
-            {
-                dstIsSingleton = true;
-                singletonType = classType;
-            }
+            var classType = dstType as ClassType;
 
             if (gen.CurrentMember != null)
             {
@@ -509,12 +524,12 @@ namespace Pytocs.Core.Translate
             }
 
             // 不在函数中（在模块定义中）
-            if (dstIsSingleton)
+            if (classType != null && classType.IsSingleton)
             {
                 // Boot = {}
                 if (ass.Src is EmptyTableExp)
                 {
-                    gen.FieldStaticSingleton(new CodeTypeReference(singletonType!.name));
+                    gen.FieldStaticSingleton(new CodeTypeReference(classType.name));
                 }
                 else
                 {
@@ -736,7 +751,22 @@ namespace Pytocs.Core.Translate
                 if (index < initCount)
                 {
                     expInit = initializers[index];
-                    codeInit = expInit.Accept(xlat);
+
+                    if (types.TypeOf(variable) is InstanceType)
+                    {
+                        if (expInit is EmptyTableExp)
+                        {
+                            codeInit = gen.New(varType);
+                        }
+                        else
+                        {
+                            throw new NotImplementedException();
+                        }
+                    }
+                    else
+                    {
+                        codeInit = expInit.Accept(xlat);
+                    }
                 }
 
                 if (gen.CurrentMember == null)
@@ -1004,8 +1034,7 @@ namespace Pytocs.Core.Translate
                 }
                 else
                 {
-                    // TODO 完善static函数的判断
-                    isStatic = f.name.Name.StartsWith("Static");
+                    isStatic = f.IsStatic();
 
                     mgen = new MethodGenerator(className, classDef, classType, f, isStatic, async, types, gen);
                 }

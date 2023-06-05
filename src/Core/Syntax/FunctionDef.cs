@@ -112,6 +112,12 @@ namespace Pytocs.Core.Syntax
         {
             return isInstanceMethod && name.Name == "_Ctor";
         }
+
+        public bool IsStatic()
+        {
+            // TODO 完善static函数的判断
+            return !isInstanceMethod && name.Name.StartsWith("Static");
+        }
     }
 
     public class LambdaStatement : MethodStatement

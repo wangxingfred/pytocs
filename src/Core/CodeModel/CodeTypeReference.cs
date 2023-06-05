@@ -62,7 +62,7 @@ namespace Pytocs.Core.CodeModel
 
         public override string ToString()
         {
-            return $"<{base.ToString()}:{TypeName}>";
+            return $"<{nameof(CodeTypeReference)}:{TypeName}>";
         }
 
         public int ArrayRank { get; set; }

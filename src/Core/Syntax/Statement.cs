@@ -250,7 +250,7 @@ namespace Pytocs.Core.Syntax
 
     public class VariableClassStatement : Statement
     {
-        public VariableClassStatement(Identifier var, Statement classDef, string filename, int pos, int end)
+        public VariableClassStatement(Identifier var, ClassDef classDef, string filename, int pos, int end)
             : base(filename, pos, end)
         {
             Variable = var;
@@ -258,7 +258,7 @@ namespace Pytocs.Core.Syntax
         }
 
         public Identifier Variable { get; }
-        public Statement ClassDef { get; }
+        public ClassDef ClassDef { get; }
 
         public override void Accept(IStatementVisitor v)
         {

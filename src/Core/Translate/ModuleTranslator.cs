@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Pytocs.Core.Types;
 
 namespace Pytocs.Core.Translate
 {
@@ -29,10 +30,14 @@ namespace Pytocs.Core.Translate
     {
         private readonly CodeGenerator gen;
 
-        public ModuleTranslator(TypeReferenceTranslator types, CodeGenerator gen, string moduleName) :
-            base(moduleName, null, null, types, gen, new SymbolGenerator(), new HashSet<string>())
+        private readonly ModuleType? moduleType;
+
+        public ModuleTranslator(TypeReferenceTranslator types, CodeGenerator gen,
+            string moduleName, ModuleType? moduleType = null) 
+            : base(moduleName, null, null, types, gen, new SymbolGenerator(), new HashSet<string>())
         {
             this.gen = gen;
+            this.moduleType = moduleType;
         }
 
         public void Translate(IEnumerable<Statement> statements)
@@ -54,6 +59,26 @@ namespace Pytocs.Core.Translate
                     }
 
                     ++c;
+                }
+
+                if (moduleType != null)
+                {
+                    foreach (var (_, dataType) in moduleType.Scope.DataTypes)
+                    {
+                        if (dataType is ClassType innerClassType)
+                        {
+                            gen.Class(innerClassType.name,
+                                null,
+                                () => GenerateFields(innerClassType),
+                                () =>
+                                {
+                                    // var gensym = new SymbolGenerator();
+                                    // var stmtXlt = new StatementTranslator(innerClassType.name, innerClassType.classDef, innerClassType,
+                                    //     types, gen, gensym, new HashSet<string>());
+                                    // innerClassType.classDef.body.Accept(stmtXlt);
+                                });
+                        }
+                    }
                 }
 
                 if (gen.Scope.Count > 0)

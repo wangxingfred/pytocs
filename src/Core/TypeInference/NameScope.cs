@@ -232,8 +232,8 @@ namespace Pytocs.Core.TypeInference
                 b.QName = id; //ExtendPath(analyzer, id);
             }
 
-            var globalScope = GetGlobalScope();
-            Debug.Assert(globalScope == analyzer.GlobalTable);
+            var globalScope = analyzer.GlobalTable;
+            Debug.Assert(globalScope == GetGlobalScope());
 
             globalScope.SetIdentifierBinding(id, b);
         }
@@ -560,6 +560,11 @@ namespace Pytocs.Core.TypeInference
             {
                 return path + "." + name;
             }
+        }
+
+        public string ExtendPath(string name)
+        {
+            return ExtendPath(Path, name);
         }
 
         public override string ToString()

@@ -119,6 +119,17 @@ namespace Pytocs.Core.TypeInference
             // var moduleType = scope.DataType as ModuleType;
             // moduleType!.Class = classType;
 
+            if (scope.DataType is ModuleType moduleType && moduleType.Name == classType.name)
+            {
+                if (moduleType.Class != null)
+                {
+                    throw new NotImplementedException();
+                }
+                
+                moduleType.Class = classType;
+                classType.IsSingleton = true;
+            }
+
             scope.AddGlobalBinding(analyzer, id.Name, id, classType, BindingKind.CLASS);
         }
 
@@ -994,11 +1005,20 @@ namespace Pytocs.Core.TypeInference
 
         public DataType VisitVariableClassStatement(VariableClassStatement v)
         {
-            var classType = v.ClassDef.Accept(this);
+            var classType = v.ClassDef.Accept(this) as ClassType;
 
-            scope.AddLocalBinding(analyzer, v.Variable.Name, v.Variable, classType, BindingKind.SCOPE);
+            if (scope.DataType is ModuleType moduleType &&
+                moduleType.Name == classType!.name)
+            {
+                if (moduleType.Class == null)
+                {
+                    moduleType.Class = classType;
+                }
+            }
 
-            return classType;
+            scope.AddLocalBinding(analyzer, v.Variable.Name, v.Variable, classType!, BindingKind.SCOPE);
+
+            return classType!;
         }
 
         public DataType VisitExtSlice(List<Slice> e)
@@ -1076,10 +1096,10 @@ namespace Pytocs.Core.TypeInference
             {
                 fun.Scope.Path = f.name.Name;
             }
-            else if (f.cls != null)
-            {
-                fun.Scope.Path = scope.ExtendPath(analyzer, f.cls.Name + "." + f.name.Name);
-            }
+            // else if (f.cls != null)
+            // {
+            //     fun.Scope.Path = scope.ExtendPath(analyzer, f.cls.Name + "." + f.name.Name);
+            // }
             else
             {
                 fun.Scope.Path = scope.ExtendPath(analyzer, f.name.Name);
@@ -1124,6 +1144,11 @@ namespace Pytocs.Core.TypeInference
 
                         break;
                     }
+                }
+
+                if (fun.Class != null)
+                {
+                    fun.Scope.Path = fun.Class.Scope.ExtendPath(f.name.Name);
                 }
 
                 if (fun.Class != null && !fun.Class.Scope.IsLocalName(f.name.Name))
@@ -1189,14 +1214,17 @@ namespace Pytocs.Core.TypeInference
                 // end
 
 
+                // var className = scope.Path + "." + b.Name;
                 var className = scope.Path + "." + b.Name;
+                className = className.Replace('.', '_');
 
                 var classBinding = scope.LookupGlobal(className);
 
                 if (classBinding == null)
                 {
                     // 类还不存在，则创建一个类，并加入到全局空间
-                    classType = CreateClassType(b);
+                    classType = CreateClassType(b, className);
+                    classType.IsClosure = true;
 
                     var clsId = new Identifier(className, b.Node.Filename, b.Node.Start, b.Node.End);
                     scope.AddGlobalBinding(analyzer, clsId.Name, clsId, classType, BindingKind.CLASS);
@@ -1214,11 +1242,36 @@ namespace Pytocs.Core.TypeInference
                 var instanceType = new InstanceType(classType);
                 b.ChangeType(instanceType, b.Kind);
             }
+            else if (scope.DataType is ModuleType moduleType)
+            {
+                // 在模块里面定义的类:
+                
+                if (b.Name == moduleType.Name)
+                {
+                    // 如果类的名字和模块的名字相同，则认为是一个模块类，需要把模块和类关联起来
+                    if (moduleType.Class != null)
+                    {
+                        classType = moduleType.Class;    
+                    }
+                    else
+                    {
+                        classType = CreateClassType(b, b.Name);
+                        classType.IsClosure = true;
+                        classType.IsSingleton = true;
+                        moduleType.Class = classType;
+                    }
+                }
+                else
+                {
+                    // classType = CreateClassType(b);
+                    throw new NotImplementedException();
+                }
+
+                b.ChangeType(classType, BindingKind.CLASS);
+            }
             else
             {
-                // 如果是在模块里面定义的类，则认为是一个普通类，直接把类型设置为ClassType
-                classType = CreateClassType(b);
-                b.ChangeType(classType, BindingKind.CLASS);
+                throw new NotImplementedException();
             }
 
             return classType;
@@ -1229,10 +1282,23 @@ namespace Pytocs.Core.TypeInference
         /// </summary>
         /// <param name="b"></param>
         /// <returns></returns>
-        private ClassType CreateClassType(Binding b)
+        private ClassType CreateClassType(Binding b, string className)
         {
             var oldType = b.Type;
-            var newType = new ClassType(b.Name, scope, b.QName);
+            
+            // 向上找到一个非函数的scope，用于容纳新的类，因为函数中不能定义类
+            var parent = scope;
+            while (parent is { stateType: NameScopeType.FUNCTION })
+            {
+                parent = parent.Parent;
+            }
+            
+            var newType = new ClassType(className, parent, b.QName);
+
+            if (parent != null)
+            {
+                parent.DataTypes.Add(className, newType);
+            }
 
             if (oldType is DictType or EmptyTableType)
             {

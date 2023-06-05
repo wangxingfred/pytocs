@@ -2877,7 +2877,7 @@ eval_input: testlist NEWLINE* ENDMARKER
         //classdef: 'class' NAME ['(' [arglist] ')'] ':' suite
 
         // ClassDefine: local cls = ClassDefine(name, super)
-        public Statement classdef()
+        public ClassDef classdef()
         {
             var posStart = Expect(TokenType.ClassDefine).Start;
 

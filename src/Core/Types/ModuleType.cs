@@ -35,7 +35,7 @@ namespace Pytocs.Core.Types
             Scope.DataType = this;
         }
 
-        // public ClassType? Class { get; set; }
+        public ClassType? Class { get; set; }
 
         public override T Accept<T>(IDataTypeVisitor<T> visitor)
         {

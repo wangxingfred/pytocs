@@ -60,6 +60,10 @@ namespace Pytocs.Core.Types
         public string name;
         public InstanceType? instance;
         public bool IsClosedGenericType { get; set; }
+        
+        public bool IsSingleton { get; set; }
+        
+        public bool IsClosure { get; set; }
 
 
         public override T Accept<T>(IDataTypeVisitor<T> visitor)
